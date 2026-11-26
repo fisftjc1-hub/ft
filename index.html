@@ -2,16 +2,19 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+<meta name="theme-color" content="#000000">
 <title>Forensics Triage 數位鑑識初篩工具</title>
 <style>
+:root{--sw:min(100vw,177.78vh);--nb:0px}
 html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:"Microsoft JhengHei","Noto Sans TC",sans-serif}
 #stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
-#stage canvas{width:min(100vw,177.78vh);height:min(56.25vw,100vh);display:block}
+#stage canvas{width:var(--sw);height:calc(var(--sw)*.5625);display:block}
 body.idle #stage{cursor:none}
-#hud{position:absolute;left:50%;top:50%;width:min(100vw,177.78vh);height:min(56.25vw,100vh);transform:translate(-50%,-50%);pointer-events:none}
+#hud{position:absolute;left:50%;top:50%;width:var(--sw);height:calc(var(--sw)*.5625);transform:translate(-50%,-50%);pointer-events:none}
 #track{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.06);transition:opacity .4s}
 #bar{height:100%;width:0;background:#FFE600;opacity:.7}
-#num{position:absolute;left:3.96%;bottom:2%;font:calc(min(100vw,177.78vh)*.0068)/1 Consolas,monospace;letter-spacing:.22em;color:#5a5f70;transition:opacity .4s}
+#num{position:absolute;left:3.96%;bottom:2%;font:calc(var(--sw)*.0068)/1 Consolas,monospace;letter-spacing:.22em;color:#5a5f70;transition:opacity .4s}
 #notes{position:fixed;left:0;right:0;bottom:0;max-height:38vh;overflow:auto;background:rgba(10,10,16,.94);border-top:1px solid #33364a;color:#e4e5ea;padding:16px 28px 22px;display:none}
 #notes.on{display:block}#notes h4{margin:0 0 8px;color:#FFE600;font-size:15px;letter-spacing:.06em}#notes p{margin:0;font-size:19px;line-height:1.7}
 #over{position:fixed;inset:0;background:rgba(5,5,8,.97);display:none;overflow:auto;padding:26px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px;align-content:start}
@@ -32,9 +35,30 @@ body:not(.idle) #num{visibility:hidden}
 #nav input:focus{outline:none;border-color:#FFE600}
 #nav i{font-style:normal;font-family:Consolas,monospace}
 #nav .ttl{max-width:min(30vw,420px);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:#8b90a0;font-size:14px;padding:0 8px;border-left:1px solid #33364a;margin-left:4px}
+#nav button[data-a="notes"]{display:none}
+html,body{overscroll-behavior:none}
+body.touch{touch-action:pan-y pinch-zoom;-webkit-tap-highlight-color:transparent}
+body.touch #nav{left:0;right:0;bottom:0;border-radius:0;border-width:1px 0 0;justify-content:space-between;padding:6px 10px;gap:2px}
+body.touch #nav button{height:46px;min-width:46px;justify-content:center}
+body.touch #nav button span,body.touch #nav .ttl{display:none}
+body.touch #nav svg{width:24px;height:24px}
+body.touch #nav button:hover{background:none;color:inherit}
+body.touch #nav button[data-a="prev"],body.touch #nav button[data-a="next"]{min-width:64px;background:rgba(255,255,255,.08)}
+body.touch #nav button:active{background:rgba(255,255,255,.2);color:#FFE600}
+body.touch #nav input{width:2.8em;height:36px;font-size:18px}
+body.touch:not(.tall) #nav button[data-a="notes"]{display:flex}
+body.touch #over{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding:12px 12px 84px}
+body.touch #tip{top:14px;width:max-content;max-width:calc(100vw - 28px);box-sizing:border-box;text-align:center;font-size:14px;line-height:1.6;z-index:40}
+body.touch #notes{-webkit-overflow-scrolling:touch}
+body.touch.tall.idle #nav{opacity:1;pointer-events:auto}
+body.touch.tall #stage{inset:auto;left:0;top:0;width:100vw;height:calc(var(--sw)*.5625);overflow:hidden}
+body.touch.tall #hud{top:0;transform:translateX(-50%)}
+body.touch.tall #notes{display:block;top:calc(var(--sw)*.5625);bottom:var(--nb);max-height:none;padding:14px 18px 20px}
+body.touch.tall #notes p{font-size:17px;line-height:1.75}
+body.touch.tall #tip{top:auto;bottom:calc(var(--nb) + 14px)}
 #live{position:absolute;left:14.0625%;top:24.074%;width:46.875%;height:64.815%;perspective:1500px;opacity:0;transition:opacity .45s;pointer-events:none}
 #live.on{opacity:1}#live.use{pointer-events:auto}
-#card{position:absolute;inset:0;overflow:hidden;border-radius:calc(min(100vw,177.78vh)*.0052);background:#fff;box-shadow:0 18px 50px rgba(0,0,0,.7);transform-origin:50% 62%}
+#card{position:absolute;inset:0;overflow:hidden;border-radius:calc(var(--sw)*.0052);background:#fff;box-shadow:0 18px 50px rgba(0,0,0,.7);transform-origin:50% 62%}
 #live.use #card{outline:3px solid #FFE600}
 #rep{position:absolute;left:0;top:0;width:1440px;height:12000px;border:0;transform-origin:0 0;transition-property:transform;transition-timing-function:cubic-bezier(.65,0,.35,1)}
 </style>
@@ -2145,7 +2169,7 @@ window.FT_PLATES = {};
 
   W.init = stage => {
     try {
-      canvas = document.createElement('canvas'); canvas.style.cssText = 'position:absolute;inset:0;width:100vw;height:100vh;display:block';
+      canvas = document.createElement('canvas'); canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block';
       G = window.FTGL.create(canvas); if (!G) return false; gl = G.gl;
       slides = E.scenes; layout();
       stage.appendChild(canvas); W.canvas = canvas;
@@ -2167,7 +2191,8 @@ window.FT_PLATES = {};
         last = { q, d: dist };
       }
       thread = G.buffer(line, [['aPos', 3], ['aDist', 1]]);
-      addEventListener('mousemove', e => { mouse = [e.clientX / innerWidth * 2 - 1, e.clientY / innerHeight * 2 - 1]; });
+      let lastTouch = -1e9; addEventListener('touchstart', () => { lastTouch = performance.now(); }, { passive: true });
+      addEventListener('mousemove', e => { if (performance.now() - lastTouch < 1500) return; mouse = [e.clientX / innerWidth * 2 - 1, e.clientY / innerHeight * 2 - 1]; });
       W.on = window.FT_WORLD_ON = true; return true;
     } catch (err) { console.error(err); return false; }
   };
@@ -2616,9 +2641,14 @@ window.FT_PLATES = {};
 // slide, previous, the number of the slide (type another and press Enter), next, all slides, full screen.
 // A slide may answer to the mouse itself: click(x, y) / hover(x, y) / down(x, y) + drag(x, y) + up(), busy() and
 // escape() for something open on it, done() when it is finished whatever its clock says.
+// With a finger (v0.12): swipe to the left for the next slide, to the right for the previous one; a tap is a click.
+// On a phone or a tablet the bar is a row of larger buttons along the bottom; held upright, the slide is at the top
+// of the screen with its notes under it.
 (function () {
   const E = window.FTE, slides = E.scenes, canvas = E.canvas, ctx = E.ctx, W = 1920, H = 1080;
   const capture = location.search.includes('capture');
+  // a device that is used with fingers first (a phone, a tablet), not a computer that also has a touch screen
+  const touchDev = !capture && ((navigator.maxTouchPoints || 0) > 0 && !!window.matchMedia && matchMedia('(pointer:coarse)').matches || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
   const stage = document.getElementById('stage');
   // The immersive edition draws through WebGL: the slide's canvas is then not shown itself but becomes the picture on
   // a panel in a 3D space (world.js). Without WebGL, or in the plain edition, the canvas is the picture.
@@ -2731,7 +2761,7 @@ window.FT_PLATES = {};
   function side() {
     const s = slides[i];
     notes.querySelector('p').textContent = s.notes || '';
-    notes.querySelector('h4').textContent = (i + 1) + '　' + s.title;
+    notes.querySelector('h4').textContent = (i + 1) + '　' + s.title; notes.scrollTop = 0;
     if (pres && !pres.closed) {
       const d = pres.document, nx = slides[i + 1];
       d.getElementById('t').textContent = (i + 1) + ' / ' + slides.length + '　' + s.title;
@@ -2757,7 +2787,8 @@ window.FT_PLATES = {};
     if (pres && !pres.closed) { const sec = Math.floor((now() - started) / 1000); pres.document.getElementById('c').textContent = String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0'); }
     if (++idle > 2 && !navBusy()) document.body.classList.add('idle');
   }, 1000);
-  addEventListener('mousemove', () => { idle = 0; document.body.classList.remove('idle'); });
+  const wake = () => { idle = 0; document.body.classList.remove('idle'); };
+  addEventListener('mousemove', wake);
 
   function overview() {
     if (over.classList.toggle('on')) {
@@ -2774,7 +2805,7 @@ window.FT_PLATES = {};
       i = keepI; entered = keepE; dirty = true; if (lv) lv.on = keepOn;
     }
   }
-  function flash(msg) { tip.textContent = msg; tip.classList.add('on'); clearTimeout(flash.t); flash.t = setTimeout(() => tip.classList.remove('on'), 1400); }
+  function flash(msg, ms) { tip.textContent = msg; tip.classList.add('on'); clearTimeout(flash.t); flash.t = setTimeout(() => tip.classList.remove('on'), ms || 1400); }
 
 
   // ---- the bar of buttons (bottom left): shown while the mouse moves, hidden with the cursor
@@ -2787,17 +2818,32 @@ window.FT_PLATES = {};
     '<button data-a="next" title="下一頁（→）">' + svg('<path d="M9 5l7 7-7 7"/>') + '</button>' +
     '<span class="ttl"></span>' +
     '<button data-a="grid" title="所有頁面（G）">' + svg('<rect x="4" y="4" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1"/>') + '<span>所有頁面</span></button>' +
+    '<button data-a="notes" title="講稿（N）">' + svg('<path d="M5 6h14M5 10.5h14M5 15h9"/><path d="M5 19.5h6"/>') + '</button>' +
     '<button data-a="full" title="全螢幕（F）">' + svg('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>') + '</button>';
   if (!capture) document.body.appendChild(nav);
   const pgin = nav.querySelector('#pgin'), ttl = nav.querySelector('.ttl');
   let shownI = -1;
+  // ---- phones and tablets (v0.12): the size of the slide comes from the window as the browser reports it (the
+  // units of the style sheet count the space under the browser's own bars on some phones); held upright, the slide
+  // sits at the top with its notes under it
+  let tall = false;
+  if (!document.documentElement.requestFullscreen) nav.querySelector('[data-a="full"]').remove();
+  function fit() {
+    if (!touchDev || document.activeElement === pgin) return;      // (the keyboard of a phone changes the height of the window)
+    tall = innerHeight > innerWidth;
+    document.body.classList.add('touch'); document.body.classList.toggle('tall', tall);
+    const root = document.documentElement.style;
+    root.setProperty('--sw', tall ? '100vw' : Math.min(innerWidth, innerHeight * 16 / 9) + 'px');      // (upright, the width decides, and the unit of the style sheet is right for it)
+    root.setProperty('--nb', nav.offsetHeight + 'px');
+  }
+  fit();
   function navSync() {
     if (shownI === i) return; shownI = i;
     if (document.activeElement !== pgin) pgin.value = i + 1;
     ttl.textContent = slides[i].title || '';
   }
-  function navBusy() { return document.activeElement === pgin || nav.matches(':hover'); }
-  function placeNav() { nav.style.bottom = (notes.classList.contains('on') ? notes.offsetHeight + 14 : 18) + 'px'; }
+  function navBusy() { return document.activeElement === pgin || (!touchDev && nav.matches(':hover')); }      // (after a tap a button stays "hovered")
+  function placeNav() { const up = notes.classList.contains('on') && !tall; nav.style.bottom = (touchDev ? (up ? notes.offsetHeight : 0) : (up ? notes.offsetHeight + 14 : 18)) + 'px'; }
   function full() { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => { }); }
   nav.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return; e.stopPropagation();
@@ -2805,6 +2851,7 @@ window.FT_PLATES = {};
     if (a === 'first') { over.classList.remove('on'); go(0); }
     else if (a === 'prev') prev(); else if (a === 'next') next();
     else if (a === 'grid') overview(); else if (a === 'full') full();
+    else if (a === 'notes') { notes.classList.toggle('on'); placeNav(); }
     b.blur();
   });
   ['mousedown', 'mouseup', 'contextmenu'].forEach(t => nav.addEventListener(t, e => e.stopPropagation()));
@@ -2814,7 +2861,7 @@ window.FT_PLATES = {};
     if (e.key === 'Enter') { const n = parseInt(pgin.value, 10); if (n >= 1 && n <= slides.length) { over.classList.remove('on'); go(n - 1, { force: true }); } else flash('頁碼請輸入 1 到 ' + slides.length); pgin.blur(); shownI = -1; }
     else if (e.key === 'Escape') { pgin.blur(); shownI = -1; }
   });
-  pgin.addEventListener('blur', () => { shownI = -1; });
+  pgin.addEventListener('blur', () => { shownI = -1; if (touchDev) setTimeout(() => { fit(); placeNav(); }, 350); });
 
   const loaded = now();
   const heard = (type, what) => { window.FT.last = { type, what, at: Math.round(now() - loaded) }; return now() - loaded > 500; };   // nothing counts in the first half second
@@ -2844,7 +2891,7 @@ window.FT_PLATES = {};
   // where on the slide (in its own 1920 x 1080 units) the mouse is
   const spot = e => { const r = (window.FT_WORLD && window.FT_WORLD.box ? window.FT_WORLD.box() : canvas.getBoundingClientRect()); return [(e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * H]; };
   // a slide may take the button for itself (dragging something on it): the click that ends the drag is then not a click
-  let grab = false, ate = false;
+  let grab = false, ate = false, tch = null, swiped = 0, lastTouch = -1e9;
   stage.addEventListener('mousedown', e => {
     ate = false; if (e.button !== 0 || over.classList.contains('on') || now() - loaded < 500) return;
     const s = slides[i], p = spot(e);
@@ -2854,14 +2901,45 @@ window.FT_PLATES = {};
   addEventListener('mouseup', () => { if (!grab) return; grab = false; const s = slides[i]; if (s.up) s.up(); dirty = true; });
   stage.addEventListener('click', e => {
     if (ate) { ate = false; return; }
+    if (now() - swiped < 450) return;                                         // the end of a swipe is not a click
     if (!heard('click', e.isTrusted ? 'user' : 'script') || over.classList.contains('on')) return;
     const s = slides[i], p = spot(e);
     if (s.click && s.click(p[0], p[1])) { dirty = true; return; }             // the slide used the click itself
     next();
   });
   stage.addEventListener('mousemove', e => { const s = slides[i], p = spot(e); stage.style.cursor = s.hover ? s.hover(p[0], p[1]) : ''; if (s.hover) dirty = true; });
-  stage.addEventListener('contextmenu', e => { e.preventDefault(); prev(); });
-  addEventListener('resize', () => { size(); placeNav(); });
+  stage.addEventListener('contextmenu', e => { e.preventDefault(); if (now() - lastTouch > 1500) prev(); });      // (a long press of a finger is not the right button)
+  addEventListener('resize', () => { fit(); size(); placeNav(); if (touchDev) { clearTimeout(fit.t); fit.t = setTimeout(() => { fit(); placeNav(); }, 400); } });      // (a phone that is being turned reports sizes on the way)
+  addEventListener('orientationchange', () => setTimeout(() => { fit(); size(); placeNav(); }, 300));
+
+  // ---- fingers (v0.12): a swipe to the left goes on, to the right goes back, anywhere but on the bar and the
+  // overview; a tap is a click, as before. A slide that lets something be dragged gets the finger for itself.
+  const zoomed = () => !!window.visualViewport && window.visualViewport.scale > 1.05;       // zoomed in with two fingers: a swipe then moves the picture
+  addEventListener('touchstart', e => {
+    lastTouch = now(); wake(); tch = null;
+    if (e.touches.length !== 1 || now() - loaded < 500 || (e.target.closest && e.target.closest('#nav,#over'))) return;
+    const t = e.touches[0];
+    tch = { x: t.clientX, y: t.clientY, at: now(), held: false };
+    if (stage.contains(e.target)) { const s = slides[i], p = spot(t); if (s.down && s.down(p[0], p[1])) { tch.held = true; dirty = true; e.preventDefault(); } }
+  }, { passive: false });
+  addEventListener('touchmove', e => {
+    if (!tch) return;
+    if (e.touches.length !== 1) { if (tch.held && slides[i].up) slides[i].up(); tch = null; return; }
+    if (tch.held) { const s = slides[i], p = spot(e.touches[0]); if (s.drag) s.drag(p[0], p[1]); dirty = true; e.preventDefault(); }
+  }, { passive: false });
+  addEventListener('touchend', e => {
+    const c = tch; tch = null; if (!c) return;
+    const s = slides[i];
+    if (c.held) { if (s.up) s.up(); dirty = true; e.preventDefault(); return; }
+    const t = e.changedTouches[0], dx = t.clientX - c.x, dy = t.clientY - c.y;
+    if (zoomed() || now() - c.at > 900 || Math.abs(dx) < 48 || Math.abs(dx) < 1.6 * Math.abs(dy)) return;      // not a swipe
+    swiped = now(); heard('swipe', dx < 0 ? 'next' : 'prev');
+    if (window.FT_LIVE && window.FT_LIVE.use) return;
+    if (dx < 0 ? i === slides.length - 1 : i === 0) { flash(dx < 0 ? '已經是最後一頁' : '已經是第一頁'); return; }
+    if (s.busy && s.busy()) s.escape();
+    go(dx < 0 ? i + 1 : i - 1);
+  });
+  addEventListener('touchcancel', () => { if (tch && tch.held && slides[i].up) slides[i].up(); tch = null; });
 
   // ---- start
   const fonts = ['300 40px "EYInterstate Light"', '700 40px "EYInterstate"', '400 40px "M 盈黑 HK W4"', '700 40px "M 盈黑 HK W5"', '400 40px "Microsoft JhengHei"', '700 40px "Microsoft JhengHei"', '400 40px "Noto Sans TC"', '700 40px "Noto Sans TC"', '400 20px "Cascadia Mono"', '400 20px Consolas'];
@@ -2892,6 +2970,7 @@ window.FT_PLATES = {};
     if (slides[i].enter) slides[i].enter(null);
     if (window.FT_ONSLIDE) window.FT_ONSLIDE(slides[i], null);
     side(); requestAnimationFrame(frame);
+    if (touchDev) setTimeout(() => flash(tall ? '左右滑動，或按下方箭頭翻頁。手機橫放畫面較大' : '左右滑動翻頁；點一下畫面也會前進', 4500), 800);
   });
 })();
 
