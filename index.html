@@ -2,8 +2,14 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Triage 簡報">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <title>Forensics Triage 數位鑑識初篩工具</title>
 <style>
 :root{--sw:min(100vw,177.78vh);--nb:0px}
@@ -38,7 +44,7 @@ body:not(.idle) #num{visibility:hidden}
 #nav button[data-a="notes"]{display:none}
 html,body{overscroll-behavior:none}
 body.touch{touch-action:pan-y pinch-zoom;-webkit-tap-highlight-color:transparent}
-body.touch #nav{left:0;right:0;bottom:0;border-radius:0;border-width:1px 0 0;justify-content:space-between;padding:6px 10px;gap:2px}
+body.touch #nav{left:0;right:0;bottom:0;border-radius:0;border-width:1px 0 0;justify-content:space-between;padding:6px max(10px,env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));gap:2px}
 body.touch #nav button{height:46px;min-width:46px;justify-content:center}
 body.touch #nav button span,body.touch #nav .ttl{display:none}
 body.touch #nav svg{width:24px;height:24px}
@@ -51,11 +57,18 @@ body.touch #over{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1
 body.touch #tip{top:14px;width:max-content;max-width:calc(100vw - 28px);box-sizing:border-box;text-align:center;font-size:14px;line-height:1.6;z-index:40}
 body.touch #notes{-webkit-overflow-scrolling:touch}
 body.touch.tall.idle #nav{opacity:1;pointer-events:auto}
-body.touch.tall #stage{inset:auto;left:0;top:0;width:100vw;height:calc(var(--sw)*.5625);overflow:hidden}
-body.touch.tall #hud{top:0;transform:translateX(-50%)}
-body.touch.tall #notes{display:block;top:calc(var(--sw)*.5625);bottom:var(--nb);max-height:none;padding:14px 18px 20px}
+body.touch.tall #stage{inset:auto;left:0;top:env(safe-area-inset-top);width:100vw;height:calc(var(--sw)*.5625);overflow:hidden}
+body.touch.tall #hud{top:env(safe-area-inset-top);transform:translateX(-50%)}
+body.touch.tall #notes{display:block;top:calc(var(--sw)*.5625 + env(safe-area-inset-top));bottom:var(--nb);max-height:none;padding:14px 18px 20px}
 body.touch.tall #notes p{font-size:17px;line-height:1.75}
 body.touch.tall #tip{top:auto;bottom:calc(var(--nb) + 14px)}
+html.roll,html.roll body{height:auto;overflow:visible}
+html.roll body{min-height:calc(100vh + 160px)}
+html.roll #stage,html.roll #hud{position:fixed}
+#help{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;background:rgba(5,5,8,.9);padding:14px;box-sizing:border-box}
+#help.on{display:flex}
+#help div{max-width:520px;max-height:100%;overflow:auto;box-sizing:border-box;background:#14151e;border:1px solid #33364a;border-radius:12px;padding:14px 20px;color:#e4e5ea;font-size:15px;line-height:1.7}
+#help h4{margin:0 0 4px;color:#FFE600;font-size:16px}#help p{margin:5px 0}#help b{color:#fff}#help .x{color:#8b90a0;font-size:13px;margin-top:8px}
 #live{position:absolute;left:14.0625%;top:24.074%;width:46.875%;height:64.815%;perspective:1500px;opacity:0;transition:opacity .45s;pointer-events:none}
 #live.on{opacity:1}#live.use{pointer-events:auto}
 #card{position:absolute;inset:0;overflow:hidden;border-radius:calc(var(--sw)*.0052);background:#fff;box-shadow:0 18px 50px rgba(0,0,0,.7);transform-origin:50% 62%}
@@ -387,7 +400,7 @@ window.FT_PLATES = {};
     ['數位鑑識與 Triage', '初篩是什麼、何時做？', ['取證之後分出一條支線，', '先提出初篩報告'], 'sec01', ['在完整分析之前產出，', '決定先看什麼、', '接著查什麼']],
     ['工具介紹', '工具怎麼產出報告？', ['20 條規則逐條檢查；', '紅色是模擬案例符合的規則'], 'sec02', ['20 條規則逐條檢查，', '同時產出分析師版', '與客戶版']],
     ['模擬案例的報告導讀', '報告呈現哪些內容？', ['模擬案例的客戶版報告，', '由上往下看'], 'sec03', ['先看三段：', '風險行為、重點時間線、', '檔案足跡']],
-    ['報告的閱讀與應用', '拿到報告之後怎麼用？', ['依初篩排出先後：', '20 台都在，只是順序不同'], 'sec04', ['排出先後，', '不排除任何一台；', '沒有列出，', '不代表沒有發生']],
+    ['報告的閱讀與應用', '拿到報告之後怎麼用？', ['依初篩排出先後：', '20 台都在，只是順序不同'], 'sec04', ['快速排出優先順序；', '沒有列出，', '不代表沒有發生']],
     ['工具的品質控管', '結果可以信任嗎？', ['不改證物、可重現、', '逐版驗證、AI 協助開發'], 'sec05', ['不改證物、', '結果可重現、', '每一版都附驗證紀錄']],
   ];
   const AGX = i => 130 + i * 340, AGY = 316, AGW = 300, AGP = 206, AGH = 286;          // the tile; the height of its picture
@@ -469,7 +482,7 @@ window.FT_PLATES = {};
   }
   S('agenda', '議程', 5, '今天分成五個部分，每一格寫的是這個部分要回答的問題：初篩是什麼、何時做；工具怎麼產出報告；報告呈現哪些內容；拿到報告之後怎麼用；結果可以信任嗎。格子裡的小圖是該部分會看到的畫面，下面一行說明圖的意思：流程中分出的支線、20 條規則與模擬案例符合的 11 條、模擬案例的報告、20 台電腦排出先後、四項品質控管。最後會回到這五格，逐一回答。',
     (ctx, t) => { bg(ctx, t); head(ctx, t, 'AGENDA', '議程：今天要回答的五個問題'); tiles(ctx, t, 'agenda'); });
-  S('recap', '重點回顧', 6, '回到議程的五個問題，每一格現在都有答案。初篩在完整分析之前產出，用來決定先看什麼、接著查什麼；工具以 20 條規則逐條檢查，同時產出分析師版與客戶版；拿到報告先看風險行為、重點時間線、檔案足跡三段；有多台電腦時依初篩排出先後，初篩不排除任何一台，沒有列出不代表沒有發生；工具不改證物、結果可重現、每一版都附驗證紀錄。最後一句請留給聽眾：初篩報告用來排定先後；要對人員採取行動或進入法律程序，依據的是完整取證、經分析師覆核的鑑識報告。',
+  S('recap', '重點回顧', 6, '回到議程的五個問題，每一格現在都有答案。初篩在完整分析之前產出，用來決定先看什麼、接著查什麼；工具以 20 條規則逐條檢查，同時產出分析師版與客戶版；拿到報告先看風險行為、重點時間線、檔案足跡三段；有多台電腦時依初篩快速排出優先順序，沒有列出不代表沒有發生；工具不改證物、結果可重現、每一版都附驗證紀錄。最後一句請留給聽眾：初篩報告用來排定先後；要對人員採取行動或進入法律程序，依據的是完整取證、經分析師覆核的鑑識報告。',
     (ctx, t) => {
       bg(ctx, t); head(ctx, t, 'RECAP', '重點回顧：五個問題的答案'); tiles(ctx, t, 'recap');
       G(ctx, 'rule', { t0: 2.6, effect: 'wipe', dur: 0.8 }, c => seg(c, 130, 944, lerp(130, 1790, eo(prog(t, 2.6, 3.4))), 944, { color: C.faint }));
@@ -482,7 +495,7 @@ window.FT_PLATES = {};
   // scale: one block of about 4 hours per computer, against one working day. The client's page later comes back to
   // this situation with the answer.
   S('opening', '如果今天有 20 位人員同日離職', 9.5,
-    '先從一個情境開始（情境示意，不是實際案件）。某公司的法遵團隊，今天有 20 位人員同日離職，要在下班前向法遵長報告處理方式。他們想在當天知道三件事：哪幾位要優先處理、依據是什麼、下一步要保全什麼。至於資料是否真的外流，要等完整分析才能回答，不是當天的初篩能回答的。如果以一套設備逐台先製作映像檔再分析，以 1 TB 約 4 小時估計，一個工作天（8 小時）只做得完兩台，20 台要 80 小時。今天的內容，就是說明怎麼在當天排出先後，同時每一台都不放掉。第四部分會回到這個情境。',
+    '先從一個情境開始（情境示意，不是實際案件）。某公司的法遵團隊，今天有 20 位人員同日離職，要在下班前向法遵長報告處理方式。他們想在當天知道三件事：哪幾位要優先處理、依據是什麼、下一步要保全什麼。至於資料是否真的外流，要等完整分析才能回答，不是當天的初篩能回答的。如果以一套設備逐台先製作映像檔再分析，以 1 TB 約 4 小時估計，一個工作天（8 小時）只做得完兩台，20 台要 80 小時。今天的內容，就是說明怎麼在當天快速排出優先順序。第四部分會回到這個情境。',
     (ctx, t) => {
       bg(ctx, t, { cx: 0.5 }); head(ctx, t, 'WHY TRIAGE  ·  情境示意', '如果今天有 20 位人員同日離職');
       text(ctx, '某公司法遵團隊要在下班前向法遵長報告處理方式；資料是否外流，要等完整分析才能回答。', 130, 296, t, { size: 27, color: C.soft, t0: 0.6, cps: 60 });
@@ -504,7 +517,7 @@ window.FT_PLATES = {};
       G(ctx, 'day', { t0: T2 + 0.3, effect: 'fade', dur: 0.3 }, c => { if (dm <= 0) return; seg(c, DAY, BY - 14, DAY, BY + 46, { color: C.ey, lw: 3, alpha: dm, glow: 10 }); });
       text(ctx, '一個工作天（8 小時）：只做得完 2 台', BX, BY + 76, t, { size: 24, color: C.ey, t0: T2 + 0.4, cps: 60 });
       text(ctx, '20 台 × 約 4 小時 ＝ 約 80 小時', BX + BW, BY + 76, t, { size: 24, color: C.soft, align: 'right', t0: T2 + 20 * STEP + 0.2, cps: 60 });
-      text(ctx, '今天要說明的：{如何在當天排出先後，同時不放掉任何一台。}', 130, 960, t, { size: 32, weight: 500, t0: T2 + 20 * STEP + 1.0, cps: 36 });
+      text(ctx, '今天要說明的：{如何在當天快速排出優先順序。}', 130, 960, t, { size: 32, weight: 500, t0: T2 + 20 * STEP + 1.0, cps: 36 });
     }, { live: true, enter: () => { if (window.FT_3D) window.FT_3D.escape(); } });
 
   // ------------------------------------------------------------------ section dividers (Blender plate + type)
@@ -550,7 +563,7 @@ window.FT_PLATES = {};
     (c, x, y, a) => icon(c, 'file-text', x - 58, y - 58, 116, { alpha: a, glow: 16 }),
   ];
   S('process', '數位鑑識分析的流程與 Triage 的位置', 10.5,
-    '數位鑑識分析大致分為五個階段：識別與保全、取證、處理、分析、報告。畫面上是證物在每個階段的樣子：原始硬碟、硬碟與映像檔、建立好的索引、依時間排列的紀錄、報告。處理與分析是最花時間的階段，所需時間隨證物大小與案情增加。Triage（初步分析）在取證之後就分出一條支線，很快帶回一份初篩報告；這時完整分析還在進行。初篩報告用來決定先檢視哪些人員、資料與期間，以及還需要保全哪些來源。初篩不用來排除任何證物，建議全部完成分析；初篩決定的是先後順序。',
+    '數位鑑識分析大致分為五個階段：識別與保全、取證、處理、分析、報告。畫面上是證物在每個階段的樣子：原始硬碟、硬碟與映像檔、建立好的索引、依時間排列的紀錄、報告。處理與分析是最花時間的階段，所需時間隨證物大小與案情增加。Triage（初步分析）在取證之後就分出一條支線，很快帶回一份初篩報告；這時完整分析還在進行。初篩報告用來決定先檢視哪些人員、資料與期間，以及還需要保全哪些來源。建議全部完成分析；初篩決定的是先後順序。',
     (ctx, t) => {
       bg(ctx, t, { cy: 0.5 }); head(ctx, t, 'DIGITAL FORENSICS  ·  PROCESS', '數位鑑識分析的流程與 Triage 的位置');
       const { ax, x0, dx, py, tx, ry, t3 } = PRX, xs = stages.map((_, i) => x0 + i * dx), W3 = !XP() && !!window.FT_WORLD_ON;
@@ -581,7 +594,7 @@ window.FT_PLATES = {};
       kicker(ctx, '用來決定', tx + 50, 836, t, { t0: t3 + 1.5, size: 22, ls: 6 });
       text(ctx, '先檢視哪些人員、資料與期間，', tx + 50, 886, t, { size: 33, t0: t3 + 1.7 });
       text(ctx, '以及還需要保全哪些來源', tx + 50, 934, t, { size: 33, t0: t3 + 2.4 });
-      text(ctx, '初篩不用來排除任何證物；{它決定的是先後順序。}', 130, 1004, t, { size: 26, color: C.soft, t0: 8.4, cps: 40 });
+      text(ctx, '{初篩決定的是先後順序。}', 130, 1004, t, { size: 26, color: C.soft, t0: 8.4, cps: 40 });
     });
 
   // ------------------------------------------------------------------ three questions
@@ -597,7 +610,7 @@ window.FT_PLATES = {};
   const QSRC = [['usb', '隨身碟'], ['disc-3', '光碟'], ['cloud', '雲端硬碟網站'], ['network', '檔案伺服器']];
   window.FT_QS = Object.assign({ rows: QG.RY.map(y => [QG.X - 30, y, 1790 - QG.X + 60, QG.RH]), targets: qs.map(q => q[3]), cells: qcell, SRC: QSRC.map((s, j) => [QG.VX + 62 + j * 128, QG.RY[2] + QG.RH / 2 - 26]) }, QG);
   S('questions', 'Triage 要回答的三個問題', 9,
-    'Triage 不是要得出最後的結論，而是在完整分析之前回答三個問題。畫面左邊是模擬案例的那台工作電腦，右邊是它的初篩報告對這三個問題的回答，都是實際結果。第一，有哪些風險行為：20 條規則中，有 11 條留有符合的紀錄。第二，從哪裡開始：符合規則的紀錄都落在 4 月 28 日 14:15 到 15:43，時間條上的細線是當天全部 80 筆行為紀錄。第三，還需要保全什麼：紀錄中出現隨身碟、光碟、雲端硬碟網站與檔案伺服器。所以 Triage 的結論是「先看什麼、接著查什麼」。初篩不用來排除任何證物；沒有符合規則的紀錄，不代表沒有發生。',
+    'Triage 不是要得出最後的結論，而是在完整分析之前回答三個問題。畫面左邊是模擬案例的那台工作電腦，右邊是它的初篩報告對這三個問題的回答，都是實際結果。第一，有哪些風險行為：20 條規則中，有 11 條留有符合的紀錄。第二，從哪裡開始：符合規則的紀錄都落在 4 月 28 日 14:15 到 15:43，時間條上的細線是當天全部 80 筆行為紀錄。第三，還需要保全什麼：紀錄中出現隨身碟、光碟、雲端硬碟網站與檔案伺服器。所以 Triage 的結論是「先看什麼、接著查什麼」。沒有符合規則的紀錄，不代表沒有發生。',
     (ctx, t) => {
       bg(ctx, t, { cx: 0.3 }); head(ctx, t, 'TRIAGE  ·  THREE QUESTIONS', 'Triage 要回答的三個問題');
       const { RY, RH, X, VX, LX, LY, TS } = QG, UI = !XP() && window.FT_QSUI ? window.FT_QSUI : null, W3 = !XP() && !!window.FT_WORLD_ON, RED = '#FF4136';
@@ -653,18 +666,18 @@ window.FT_PLATES = {};
           });
         }
       });
-      text(ctx, 'Triage 的結論不是「有沒有問題」，而是{「先看什麼、接著查什麼」}。初篩不用來排除任何證物。', 130, 1004, t, { size: 30, weight: 500, t0: 6.6, cps: 36 });
+      text(ctx, 'Triage 的結論不是「有沒有問題」，而是{「先看什麼、接著查什麼」}。', 130, 1004, t, { size: 30, weight: 500, t0: 6.6, cps: 36 });
     });
 
   section('02', ['Forensics Triage', '工具介紹'], '第二部分：我們把 Triage 的工作寫成一支在 EnCase 內執行的腳本。');
 
   // ------------------------------------------------------------------ manual vs automated
-  const cmp = [['時間', '需逐一開啟各類跡證，時間隨證物大小增加', '實測 {約半分鐘～7 分鐘}，依檔案數量與分析項目而定'],
+  const cmp = [['時間', '需逐一開啟各類跡證，時間隨證物大小增加', '保守估計{每台約 10 分鐘}，依檔案數量與分析項目而定'],
   ['一致性', '檢視的項目與判斷標準，仰賴個人經驗', '{20 條}預先定義的規則，每次檢視相同項目'],
   ['可讀性', '產出為技術紀錄，需由鑑識人員轉述', '產出分析師版，以及{不含技術名詞}的客戶版']];
   const barsL = (() => { const r = rng(21); return Array.from({ length: 46 }, () => 0.25 + r() * 0.75); })();
   S('compare', '人工初篩的限制與自動化的做法', 11,
-    '人工做 Triage 有三個限制：要逐一開啟各類跡證，花時間；檢視哪些項目、怎麼判斷，仰賴個人經驗；產出是技術紀錄，需要鑑識人員轉述。Forensics Triage 把這些工作寫成腳本：執行一次即完成。以目前的版本在 EnCase 介面實測過三個案例：兩個測試案例，60 GB 的硬碟約半分鐘，64 GB 的硬碟約 2 分鐘；一個實際案件，一台電腦兩顆硬碟、約 81 萬個檔案（檔案合計約 567 GiB），約 7 分鐘。兩個測試案例容量差不多，時間卻差了好幾倍，因為腳本讀的是檔案系統紀錄與系統紀錄，不讀每個檔案的內容；時間主要隨檔案數量增加，前者約 7 萬個檔案、後者約 31 萬個。所以 1 TB 的硬碟不一定比較慢，要看裡面有多少檔案，以及勾選了哪些分析項目。另外，20 條預先定義的規則，每次檢視相同的項目；同時產出分析師版與不含技術名詞的客戶版。腳本的開發過程有使用 AI 協助；工具本身在鑑識環境內離線執行。',
+    '人工做 Triage 有三個限制：要逐一開啟各類跡證，花時間；檢視哪些項目、怎麼判斷，仰賴個人經驗；產出是技術紀錄，需要鑑識人員轉述。Forensics Triage 把這些工作寫成腳本：執行一次即完成。時間方面，以目前的版本在一個實際案件實測：一台電腦兩顆硬碟、約 81 萬個檔案（檔案合計約 567 GiB），約 7 分鐘；保守以每台約 10 分鐘估計。腳本讀的是檔案系統紀錄與系統紀錄，不讀每個檔案的內容，所以時間主要隨檔案數量增加，而不是硬碟容量；1 TB 的硬碟不一定比較慢，要看裡面有多少檔案，以及勾選了哪些分析項目。另外，20 條預先定義的規則，每次檢視相同的項目；同時產出分析師版與不含技術名詞的客戶版。腳本的開發過程有使用 AI 協助；工具本身在鑑識環境內離線執行。',
     (ctx, t) => {
       bg(ctx, t); head(ctx, t, 'MANUAL  vs  AUTOMATED', '人工初篩的限制與自動化的做法');
       // The items to examine, drawn as a grid of cells (filled column by column). Manual: one cell at a time, part of
@@ -698,7 +711,7 @@ window.FT_PLATES = {};
         para(ctx, r[2], fx[1], y, 740, t, { size: 30, t0: t0 + 0.5, cps: 40 });
         G(ctx, 'row' + i, { t0, effect: 'wipe', dur: 0.8 }, c => seg(c, 130, y + 34, lerp(130, 1790, eo(prog(t, t0, t0 + 0.8))), y + 34, { color: C.faint }));
       });
-      para(ctx, ['測試案例：60 GB 硬碟、約 7 萬個檔案，約半分鐘', '測試案例：64 GB 硬碟、約 31 萬個檔案，約 2 分鐘', '實際案件：兩顆硬碟、約 81 萬個檔案，約 7 分鐘'], fx[1], 916, 740, t, { size: 22, color: C.soft, t0: 8.2, cps: 60, lh: 33 });
+      para(ctx, ['依據：實際案件實測約 7 分鐘', '（一台電腦、兩顆硬碟、約 81 萬個檔案）'], fx[1], 916, 740, t, { size: 22, color: C.soft, t0: 8.2, cps: 60, lh: 33 });
       text(ctx, '腳本以 AI 協助開發，並於離線環境執行。', 130, 990, t, { size: 24, color: C.grey, t0: 8.6 });
     });
 
@@ -709,7 +722,7 @@ window.FT_PLATES = {};
   // original disk is connected: through a write blocker. Data packets go from the disk through the blocker to the
   // workstation; a write sent back from the workstation stops at the blocker. Both repeat while the slide is shown.
   S('fast', '時間更緊迫時：不製作映像檔，經防寫設備直接產出初篩報告', 13.8,
-    '前面說明了腳本讓 Triage 這一步從逐項檢視變成幾分鐘。先說明，這一頁是規劃中的做法，還沒有在實際案件使用；經防寫設備讀取原始硬碟，我們評估是可行的。如果時間更緊迫，還可以再提早一步：先不製作映像檔，把原始硬碟經防寫設備接上工作站，在 EnCase 以預覽方式加入後直接執行腳本，當場得到初篩報告。畫面上方是同一條流程，Triage 的位置從「取證」之後移到「取證」之前。製作映像檔以 1 TB 約 4 小時估計（保守），初篩結果可以提早約 4 小時取得；映像檔之後仍要補做，所以總時間沒有省下來，是先有了方向。這條路徑的前提是防寫設備：它讓資料只能從原始硬碟讀出，工作站送回硬碟的寫入都會被擋下，所以直接對原始硬碟執行腳本，工作站不會寫入原始硬碟。畫面下方的動畫就是這件事：黃色的資料往工作站走，紅色的寫入停在防寫設備。取捨是沒有映像檔與雜湊值，所以原始設備仍然要保全；之後依初篩排出的優先順序補做完整取證，可能進入法律程序的案件排在最前面。可能進入法律程序的設備，也可以先製作映像檔再執行。是否採用這條路徑，是案件開始時的專業判斷。',
+    '前面說明了腳本讓 Triage 這一步從逐項檢視變成約 10 分鐘。先說明，這一頁是規劃中的做法，還沒有在實際案件使用；經防寫設備讀取原始硬碟，我們評估是可行的。如果時間更緊迫，還可以再提早一步：先不製作映像檔，把原始硬碟經防寫設備接上工作站，在 EnCase 以預覽方式加入後直接執行腳本，當場得到初篩報告。畫面上方是同一條流程，Triage 的位置從「取證」之後移到「取證」之前。製作映像檔以 1 TB 約 4 小時估計（保守），初篩結果可以提早約 4 小時取得；映像檔之後仍要補做，所以總時間沒有省下來，是先有了方向。這條路徑的前提是防寫設備：它讓資料只能從原始硬碟讀出，工作站送回硬碟的寫入都會被擋下，所以直接對原始硬碟執行腳本，工作站不會寫入原始硬碟。畫面下方的動畫就是這件事：黃色的資料往工作站走，紅色的寫入停在防寫設備。取捨是沒有映像檔與雜湊值，所以原始設備仍然要保全；之後依初篩排出的優先順序補做完整取證，可能進入法律程序的案件排在最前面。可能進入法律程序的設備，也可以先製作映像檔再執行。是否採用這條路徑，是案件開始時的專業判斷。',
     (ctx, t) => {
       bg(ctx, t, { cy: 0.5 }); head(ctx, t, 'WHEN TIME IS SHORT  ·  TRIAGE BEFORE IMAGING  ·  WRITE-BLOCKED', '時間更緊迫時：不製作映像檔，經防寫設備直接產出初篩報告');
       { const pa = XP() ? 1 : prog(t, 0.6, 1.0); box(ctx, 1426, 82, 364, 50, { stroke: C.ey, lw: 2, r: 25, alpha: pa, dash: [7, 6] }); text(ctx, '規劃中・尚未用於實際案件', 1608, 116, t, { size: 22, weight: 700, color: C.ey, align: 'center', t0: 0.6, cps: 60 }); }
@@ -732,15 +745,15 @@ window.FT_PLATES = {};
       });
       text(ctx, '先有初篩結果，再依優先順序製作映像檔', xs[1] - 14, ax - 104, t, { size: 24, color: C.ey, t0: 4.3, cps: 60 });
       // the time this saves, to scale: 240 minutes of imaging against a few minutes of script
-      const BX = 400, WI = 1069, WS = 31, y1 = 588, y2 = 648;
+      const BX = 400, WI = 1069, WS = 45, y1 = 588, y2 = 648;
       text(ctx, '一般流程', 130, y1 + 26, t, { size: 30, weight: 700, color: C.grey, t0: 4.9 });
       G(ctx, 'img', { t0: 4.9, effect: 'wipe', dur: 1.0 }, c => box(c, BX, y1, WI * eo(prog(t, 4.9, 5.9)), 32, { fill: 'rgba(255,255,255,0.16)', r: 4 }));
       text(ctx, '製作映像檔　1 TB 約 4 小時（保守估計）', BX + 20, y1 + 25, t, { size: 24, color: C.soft, t0: 5.1, cps: 60 });
       G(ctx, 's1', { t0: 5.9, effect: 'fade', dur: 0.4 }, c => box(c, BX + WI + 4, y1, WS, 32, { fill: C.ey, r: 4, glow: 14, alpha: prog(t, 5.9, 6.3) }));
-      text(ctx, '＋ 腳本　半分鐘～7 分鐘', BX + WI + WS + 22, y1 + 25, t, { size: 24, color: C.ey, t0: 5.9, cps: 60 });
+      text(ctx, '＋ 腳本　約 10 分鐘', BX + WI + WS + 22, y1 + 25, t, { size: 24, color: C.ey, t0: 5.9, cps: 60 });
       text(ctx, '快速路徑', 130, y2 + 26, t, { size: 30, weight: 700, hot: true, t0: 6.5 });
       G(ctx, 's2', { t0: 6.5, effect: 'fade', dur: 0.4 }, c => box(c, BX, y2, WS, 32, { fill: C.ey, r: 4, glow: 14, alpha: prog(t, 6.5, 6.9) }));
-      text(ctx, '經防寫設備直接執行腳本　半分鐘～7 分鐘', BX + WS + 22, y2 + 25, t, { size: 24, color: C.ey, t0: 6.6, cps: 60 });
+      text(ctx, '經防寫設備直接執行腳本　約 10 分鐘', BX + WS + 22, y2 + 25, t, { size: 24, color: C.ey, t0: 6.6, cps: 60 });
       text(ctx, '{初篩結果提早約 4 小時}', 1790, y2 + 30, t, { size: 46, weight: 700, align: 'right', t0: 7.1 });
 
       // how the original disk is connected: the write blocker lets data out and keeps writes from reaching the disk
@@ -812,10 +825,10 @@ window.FT_PLATES = {};
   // needed before the end of the day. The 20 computers are a Blender render (iso_laptops.py): a base picture with
   // every screen off and one transparent layer per laptop, which PowerPoint lights one at a time; three turn red
   // (an illustration, not real figures). Below them, the two groups and their next step.
-  S('client', '回到開頭的情境：當天排出先後，不排除任何一台', 11.5,
-    '回到開頭的情境：某公司的法遵團隊，今天有 20 位人員離職，要在下班前向法遵長報告處理方式。他們想知道三件事：哪幾位要優先處理、依據是什麼、下一步要保全什麼。做法是 20 台電腦逐台經防寫設備直接執行腳本，也就是第二部分介紹、目前還在規劃中的快速路徑；每台得到一份不含技術名詞的客戶版報告，再依各台的「風險行為」排出優先順序。畫面上的 3 台與 17 台是情境示意，不是實際數字。留有符合規則紀錄的 3 台優先處理：保全設備，先做完整取證與深入分析。其餘 17 台排在其後，設備同樣保全，分析完成之前不重灌、不重新配發；沒有符合規則的紀錄，不代表沒有發生。初篩不用來排除任何一台，建議全部完成分析。時間方面，以映像檔實測每台約半分鐘到 7 分鐘，依檔案數量與勾選的分析項目而定；20 台由多套防寫設備與工作站同時進行，當天排出先後。如果以一套設備逐台製作映像檔，以 1 TB 約 4 小時估計，20 台當天無法完成。（備忘：腳本目前是每台各產出一份報告，跨多台的優先順序需要另外彙整。）',
+  S('client', '快速排出優先順序', 11.5,
+    '回到開頭的情境：某公司的法遵團隊，今天有 20 位人員離職，要在下班前向法遵長報告處理方式。他們想知道三件事：哪幾位要優先處理、依據是什麼、下一步要保全什麼。做法是 20 台電腦逐台經防寫設備直接執行腳本，也就是第二部分介紹、目前還在規劃中的快速路徑；每台得到一份不含技術名詞的客戶版報告，再依各台的「風險行為」排出優先順序。畫面上的 3 台與 17 台是情境示意，不是實際數字。留有符合規則紀錄的 3 台優先處理：保全設備，先做完整取證與深入分析。其餘 17 台排在其後，設備同樣保全，分析完成之前不重灌、不重新配發；沒有符合規則的紀錄，不代表沒有發生；建議全部完成分析。時間方面，以實際案件的映像檔實測，一台約 7 分鐘；保守以每台約 10 分鐘估計，20 台的腳本執行時間合計約 200 分鐘，由多套防寫設備與工作站同時進行，當天排出優先順序。如果以一套設備逐台製作映像檔，以 1 TB 約 4 小時估計，20 台當天無法完成。（備忘：腳本目前是每台各產出一份報告，跨多台的優先順序需要另外彙整。）',
     (ctx, t) => {
-      bg(ctx, t, { cx: 0.5 }); head(ctx, t, 'CLIENT VIEW  ·  情境示意', '回到開頭的情境：當天排出先後，不排除任何一台');
+      bg(ctx, t, { cx: 0.5 }); head(ctx, t, 'CLIENT VIEW  ·  情境示意', '快速排出優先順序');
       text(ctx, '某公司法遵團隊：今天有 20 位人員離職，需要在下班前向法遵長報告處理方式。', 130, 296, t, { size: 27, color: C.soft, t0: 0.6, cps: 60 });
       // what the client wants to know, on one line
       kicker(ctx, '想在當天知道', 130, 358, t, { t0: 1.0, size: 22, ls: 6 });
@@ -846,7 +859,7 @@ window.FT_PLATES = {};
       const B = R2 + 1.2;
       G(ctx, 'rule', { t0: B, effect: 'wipe', dur: 0.8 }, c => seg(c, 130, 866, lerp(130, 1790, eo(prog(t, B, B + 0.8))), 866, { color: C.faint }));
       text(ctx, '若以一套設備逐台製作映像檔：20 台 × 約 4 小時（以 1 TB 估計），當天無法完成。', 130, 918, t, { size: 26, color: C.grey, t0: B + 0.2, cps: 60 });
-      text(ctx, '經防寫設備直接執行腳本（規劃中）：每台約半分鐘到 7 分鐘，{多套設備同時進行，當天排出先後。}', 130, 966, t, { size: 30, t0: B + 0.8, cps: 60 });
+      text(ctx, '經防寫設備直接執行腳本（規劃中）：20 台 × 約 10 分鐘（保守估計），{多套設備同時進行，當天排出優先順序。}', 130, 966, t, { size: 30, t0: B + 0.8, cps: 60 });
       text(ctx, '每台各產出一份報告；跨台的先後，由鑑識人員依各台報告彙整。', 130, 1012, t, { size: 22, color: C.grey, t0: B + 1.4, cps: 60 });
       if (!XP() && window.FT_3D && window.FT_3D.overlay) window.FT_3D.overlay(ctx, t);        // the card of a clicked laptop, over everything
     });
@@ -2823,11 +2836,28 @@ window.FT_PLATES = {};
   if (!capture) document.body.appendChild(nav);
   const pgin = nav.querySelector('#pgin'), ttl = nav.querySelector('.ttl');
   let shownI = -1;
+  const loaded = now();
   // ---- phones and tablets (v0.12): the size of the slide comes from the window as the browser reports it (the
   // units of the style sheet count the space under the browser's own bars on some phones); held upright, the slide
   // sits at the top with its notes under it
   let tall = false;
-  if (!document.documentElement.requestFullscreen) nav.querySelector('[data-a="full"]').remove();
+  // ---- full screen (v0.13). Where the browser can show a page full screen, the button does that. Safari on an
+  // iPhone cannot: there, with the phone on its side, the page is made a little longer than the window, so that
+  // pushing it up makes Safari put its bars away, and the button explains this and the home screen. Opened from
+  // the home screen there are no bars, and no button.
+  const de = document.documentElement, fsReq = de.requestFullscreen || de.webkitRequestFullscreen;
+  const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement;
+  const alone = navigator.standalone === true || (!!window.matchMedia && (matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches));
+  const roll = touchDev && !fsReq && !alone;
+  let rollTold = false;
+  if (alone || (!fsReq && !roll)) nav.querySelector('[data-a="full"]').remove();
+  const help = document.createElement('div'); help.id = 'help';
+  help.innerHTML = '<div><h4>全螢幕（iPhone 的 Safari）</h4>' +
+    '<p><b>收起 Safari 的列：</b>手機橫放，在簡報上往上滑一下，網址列與分頁列會收起來。點螢幕最上緣可以再叫出來。</p>' +
+    '<p><b>完全全螢幕：</b>按 Safari 的「分享」，選「加入主畫面」。之後從主畫面的圖示開啟，就沒有 Safari 的列。</p>' +
+    '<p class="x">點一下關閉</p></div>';
+  if (roll) document.body.appendChild(help);
+  help.addEventListener('click', e => { e.stopPropagation(); help.classList.remove('on'); });
   function fit() {
     if (!touchDev || document.activeElement === pgin) return;      // (the keyboard of a phone changes the height of the window)
     tall = innerHeight > innerWidth;
@@ -2835,16 +2865,25 @@ window.FT_PLATES = {};
     const root = document.documentElement.style;
     root.setProperty('--sw', tall ? '100vw' : Math.min(innerWidth, innerHeight * 16 / 9) + 'px');      // (upright, the width decides, and the unit of the style sheet is right for it)
     root.setProperty('--nb', nav.offsetHeight + 'px');
+    const r = roll && !tall;
+    if (de.classList.contains('roll') !== r) {
+      de.classList.toggle('roll', r); if (!r) scrollTo(0, 0);
+      if (r && !rollTold && now() - loaded > 1500) { rollTold = true; flash('在簡報上往上滑一下，可收起 Safari 的網址列', 5000); }
+    }
   }
-  fit();
   function navSync() {
     if (shownI === i) return; shownI = i;
     if (document.activeElement !== pgin) pgin.value = i + 1;
     ttl.textContent = slides[i].title || '';
   }
+  fit();
   function navBusy() { return document.activeElement === pgin || (!touchDev && nav.matches(':hover')); }      // (after a tap a button stays "hovered")
   function placeNav() { const up = notes.classList.contains('on') && !tall; nav.style.bottom = (touchDev ? (up ? notes.offsetHeight : 0) : (up ? notes.offsetHeight + 14 : 18)) + 'px'; }
-  function full() { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(() => { }); }
+  function full() {
+    if (fsEl()) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
+    if (!fsReq) { if (roll) help.classList.add('on'); return; }
+    const p = fsReq.call(de); if (p && p.catch) p.catch(() => { });
+  }
   nav.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return; e.stopPropagation();
     const a = b.dataset.a;
@@ -2863,7 +2902,6 @@ window.FT_PLATES = {};
   });
   pgin.addEventListener('blur', () => { shownI = -1; if (touchDev) setTimeout(() => { fit(); placeNav(); }, 350); });
 
-  const loaded = now();
   const heard = (type, what) => { window.FT.last = { type, what, at: Math.round(now() - loaded) }; return now() - loaded > 500; };   // nothing counts in the first half second
   function key(e) {
     const k = e.key;
@@ -2917,7 +2955,7 @@ window.FT_PLATES = {};
   const zoomed = () => !!window.visualViewport && window.visualViewport.scale > 1.05;       // zoomed in with two fingers: a swipe then moves the picture
   addEventListener('touchstart', e => {
     lastTouch = now(); wake(); tch = null;
-    if (e.touches.length !== 1 || now() - loaded < 500 || (e.target.closest && e.target.closest('#nav,#over'))) return;
+    if (e.touches.length !== 1 || now() - loaded < 500 || (e.target.closest && e.target.closest('#nav,#over,#help'))) return;
     const t = e.touches[0];
     tch = { x: t.clientX, y: t.clientY, at: now(), held: false };
     if (stage.contains(e.target)) { const s = slides[i], p = spot(t); if (s.down && s.down(p[0], p[1])) { tch.held = true; dirty = true; e.preventDefault(); } }
@@ -2970,7 +3008,7 @@ window.FT_PLATES = {};
     if (slides[i].enter) slides[i].enter(null);
     if (window.FT_ONSLIDE) window.FT_ONSLIDE(slides[i], null);
     side(); requestAnimationFrame(frame);
-    if (touchDev) setTimeout(() => flash(tall ? '左右滑動，或按下方箭頭翻頁。手機橫放畫面較大' : '左右滑動翻頁；點一下畫面也會前進', 4500), 800);
+    if (touchDev) setTimeout(() => { if (roll && !tall) rollTold = true; flash(tall ? '左右滑動，或按下方箭頭翻頁。手機橫放畫面較大' : roll ? '左右滑動翻頁。往上滑一下，可收起 Safari 的網址列' : '左右滑動翻頁；點一下畫面也會前進', roll && !tall ? 6000 : 4500); }, 800);
   });
 })();
 
