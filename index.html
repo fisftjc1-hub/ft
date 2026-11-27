@@ -28,7 +28,8 @@ body.idle #stage{cursor:none}
 #over button{background:none;border:1px solid #2b2e3a;border-radius:8px;padding:8px;color:#c9cbd3;font:13px/1.5 inherit;text-align:left;cursor:pointer}
 #over button canvas{width:100%;height:auto;display:block;border-radius:4px;margin-bottom:6px}
 #over button.cur{border-color:#FFE600}#over button:hover{border-color:#8b90a0}
-#tip{position:fixed;left:50%;top:26px;transform:translateX(-50%);background:rgba(20,21,30,.92);color:#e4e5ea;border:1px solid #33364a;border-radius:8px;padding:8px 18px;font-size:15px;opacity:0;transition:opacity .25s;pointer-events:none}
+#over button.sel{border-color:#FFE600;box-shadow:0 0 0 2px #FFE600;color:#fff}
+#tip{position:fixed;left:50%;top:26px;transform:translateX(-50%);background:rgba(20,21,30,.92);color:#e4e5ea;border:1px solid #33364a;border-radius:8px;padding:8px 18px;font-size:15px;line-height:1.7;text-align:center;width:max-content;max-width:calc(100vw - 80px);box-sizing:border-box;opacity:0;transition:opacity .25s;pointer-events:none;z-index:40}
 #tip.on{opacity:1}
 #nav{position:fixed;left:18px;bottom:18px;z-index:30;display:flex;align-items:center;gap:4px;padding:6px 8px;background:rgba(16,17,24,.88);border:1px solid #33364a;border-radius:10px;color:#e4e5ea;font:15px/1 "Microsoft JhengHei","Noto Sans TC",sans-serif;transition:opacity .35s;backdrop-filter:blur(6px)}
 body.idle #nav{opacity:0;pointer-events:none}
@@ -1251,12 +1252,15 @@ window.FT_PLATES = {};
     box(ctx, mx - 7, y, mw + 14, h, { stroke: strong ? C.ey : 'rgba(255,230,0,0.55)', lw: strong ? 3 : 2, r: 3, alpha: a });
     if (strong) { ctx.save(); ctx.shadowColor = C.warm; ctx.shadowBlur = 18; ctx.strokeStyle = C.ey; ctx.lineWidth = 3; ctx.globalAlpha = 0.6 * a; ctx.strokeRect(mx - 7, y, mw + 14, h); ctx.restore(); }
   };
+  // The tour page we came from, when it is not the one before in the order of the talk (going back, or a jump inside
+  // the tour): the frame on the small map then starts from that page's section, as the live report does (live.js).
+  let cameFrom = null;
   SHOW.forEach(k => {
     const title = k === 0 ? '報告導讀：一份報告，先看三個區段' : k === 8 ? '報告導讀：其餘四段是查證時的明細' : '報告導讀：' + secNames[k - 1];
     const kick = k === 0 ? 'REPORT TOUR  ·  電腦行為摘要' : k === 8 ? 'REPORT TOUR  ·  其餘四段' : 'REPORT TOUR  ·  先看的三段  ·  ' + (KEY.indexOf(k) + 1) + ' / 3';
     S('tour' + k, title, k === 0 ? 7 : 7.5, tourNotes[k], (ctx, t) => {
       bg(ctx, t, { cx: 0.38, rings: false }); head(ctx, t, kick, title);
-      const pk = prevOf(k), b = REG[k], m = k === 0 ? eio(prog(t, 0.4, 2.2)) : eio(prog(t, 0.3, 2.3));
+      const pk = !XP() && cameFrom != null && cameFrom !== k && SHOW.includes(cameFrom) ? cameFrom : prevOf(k), b = REG[k], m = k === 0 ? eio(prog(t, 0.4, 2.2)) : eio(prog(t, 0.3, 2.3));
       const from = k === 0 ? [80, -40, 1280] : REG[pk];
       const rx = lerp(from[0], b[0], m), ry = lerp(from[1], b[1], m), rw = lerp(from[2], b[2], m), rh = rw / RAT, appear = k === 0 ? prog(t, 0.2, 0.9) : 1;
       const mx = 130, mw = 84, mh = mw * D.pageH / 1440, my = FR.y;
@@ -1309,7 +1313,7 @@ window.FT_PLATES = {};
           y += 46 + hh + 28;
         });
       }
-    });
+    }, { enter: a => { cameFrom = a && a.id && a.id.startsWith('tour') ? +a.id.slice(4) : null; } });
   });
 
   section('04', ['報告的', '閱讀與應用'], '第四部分：回到開頭的情境，看有多台電腦時怎麼排出先後，以及不同角色怎麼使用報告。');
@@ -2662,10 +2666,20 @@ window.FT_PLATES = {};
 // side (notes, presenter window, overview) out of the picture.
 //
 //   →  PageDown  Space  Enter  click     next (on a content slide that is still playing: finish it first)
-//   ←  PageUp  Backspace                 previous
+//   ←  PageUp  Backspace  right button   previous: the slide before is shown finished (R plays it again)
 //   Home / End                           first / last slide          digits + Enter: go to that slide
 //   F  full screen     N  notes     P  presenter window     G  overview     R  replay the slide
 //   [  ]  slower / faster animation      H  sharper picture (heavier)
+// The rules of v0.16 (the keys were tried one by one in every state, see nav_logic_v16.js):
+//   - something open on the slide (a card): next and previous both close it first, and the slide stays; Home, End
+//     and a typed number leave the slide at once;
+//   - Esc closes one thing at a time: a number half typed, then the overview, then what is open on the slide. The
+//     notes are opened and closed with N only;
+//   - a number half typed is shown at the top of every kind of slide, and is forgotten after three seconds, or when
+//     the slide is finished or left; a number that is no slide is refused with a word, the slide stays;
+//   - at the first and at the last slide a word says so;
+//   - in the overview the arrows move the frame, Enter goes there; the buttons 上一頁 / 下一頁 close it first;
+//   - Enter or Space on a button that has the focus presses that button.
 // With the mouse: a bar at the bottom left (it shows when the mouse moves, like the one of a slide show): first
 // slide, previous, the number of the slide (type another and press Enter), next, all slides, full screen.
 // A slide may answer to the mouse itself: click(x, y) / hover(x, y) / down(x, y) + drag(x, y) + up(), busy() and
@@ -2764,22 +2778,33 @@ window.FT_PLATES = {};
       if (tours) { if (window.FT_ONSLIDE) window.FT_ONSLIDE(slides[i], a); }
       else { if (window.FT_ONSLIDE) window.FT_ONSLIDE({ id: '-' }, a); pending = { s: slides[i], a }; }
     } else if (window.FT_ONSLIDE) window.FT_ONSLIDE(slides[i], a);
-    dirty = true; typed = '';
+    // going back one slide: it is shown as it was left, finished (it does not play again; R does that)
+    if (opts.done && kindOf(slides[i]) === 'content') entered = now() - (slides[i].dur + 0.3) * 1000 / rate;
+    dirty = true; untype();
     try { history.replaceState(null, '', '#' + (i + 1)); } catch (e) { }
     side();
   }
   function next() {
     const s = slides[i];
     if (s.busy && s.busy()) { s.escape(); return; }                 // something is open on the slide: close that first
-    if (kindOf(s) === 'content' && clock() < s.dur - 0.05 && !(s.done && s.done())) { entered = now() - (s.dur + 0.3) * 1000 / rate; dirty = true; return; }   // show the finished slide first
+    if (kindOf(s) === 'content' && clock() < s.dur - 0.05 && !(s.done && s.done())) { entered = now() - (s.dur + 0.3) * 1000 / rate; dirty = true; untype(); return; }   // show the finished slide first
+    if (i === slides.length - 1) { flash('已經是最後一頁'); return; }
     go(i + 1);
   }
-  const prev = () => go(i - 1);
+  function prev() {
+    const s = slides[i];
+    if (s.busy && s.busy()) { s.escape(); return; }                 // (the same as on the way forward)
+    if (i === 0) { flash('已經是第一頁'); return; }
+    go(i - 1, { done: true });
+  }
 
   // ---- what only the speaker sees
   const el = id => document.getElementById(id);
   const bar = el('bar'), num = el('num'), notes = el('notes'), over = el('over'), tip = el('tip');
-  let typed = '', pres = null, started = now(), idle = 0;
+  let typed = '', typedAt = 0, pres = null, started = now(), idle = 0;
+  // a number being typed: shown at the top on every kind of slide, forgotten when nothing follows for three seconds
+  function untype() { if (!typed) return; typed = ''; dirty = true; if (flash.typed) { flash.typed = false; tip.classList.remove('on'); } }
+  function type(k) { typed = (typed + k).slice(0, 3); typedAt = now(); dirty = true; flash('前往第 ' + typed + ' 頁：按 Enter　（Esc 取消）', 3000); flash.typed = true; }
   function hud(t) {
     const s = slides[i]; navSync();
     bar.style.width = ((i + Math.min(1, t / s.dur)) / slides.length * 100).toFixed(2) + '%';
@@ -2816,9 +2841,18 @@ window.FT_PLATES = {};
     if (pres && !pres.closed) { const sec = Math.floor((now() - started) / 1000); pres.document.getElementById('c').textContent = String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0'); }
     if (++idle > 2 && !navBusy()) document.body.classList.add('idle');
   }, 1000);
+  setInterval(() => { if (typed && now() - typedAt > 3000) untype(); }, 200);
   const wake = () => { idle = 0; document.body.classList.remove('idle'); };
   addEventListener('mousemove', wake);
 
+  // the overview: the frame (sel) starts on the slide we are at; the arrows move it, Enter goes there
+  let sel = 0;
+  function pick(n) {
+    const b = over.children; if (!b.length) return; sel = Math.max(0, Math.min(b.length - 1, n));
+    for (let k = 0; k < b.length; k++) b[k].classList.toggle('sel', k === sel);
+    if (b[sel].scrollIntoView) b[sel].scrollIntoView({ block: 'nearest' });
+  }
+  const cols = () => { const b = over.children; let n = 0; while (n < b.length && b[n].offsetTop === b[0].offsetTop) n++; return Math.max(1, n); };
   function overview() {
     if (over.classList.toggle('on')) {
       over.innerHTML = '';
@@ -2832,9 +2866,10 @@ window.FT_PLATES = {};
         over.appendChild(b);
       });
       i = keepI; entered = keepE; dirty = true; if (lv) lv.on = keepOn;
+      pick(keepI);
     }
   }
-  function flash(msg, ms) { tip.textContent = msg; tip.classList.add('on'); clearTimeout(flash.t); flash.t = setTimeout(() => tip.classList.remove('on'), ms || 1400); }
+  function flash(msg, ms) { flash.typed = false; tip.textContent = msg; tip.classList.add('on'); clearTimeout(flash.t); flash.t = setTimeout(() => { tip.classList.remove('on'); flash.typed = false; }, ms || 1400); }
 
 
   // ---- the bar of buttons (bottom left): shown while the mouse moves, hidden with the cursor
@@ -2904,7 +2939,7 @@ window.FT_PLATES = {};
     const b = e.target.closest('button'); if (!b) return; e.stopPropagation();
     const a = b.dataset.a;
     if (a === 'first') { over.classList.remove('on'); go(0); }
-    else if (a === 'prev') prev(); else if (a === 'next') next();
+    else if (a === 'prev' || a === 'next') { over.classList.remove('on'); if (a === 'prev') prev(); else next(); }      // (never a change of slide behind the overview)
     else if (a === 'grid') overview(); else if (a === 'full') full();
     else if (a === 'notes') { notes.classList.toggle('on'); placeNav(); }
     b.blur();
@@ -2922,15 +2957,34 @@ window.FT_PLATES = {};
   function key(e) {
     const k = e.key;
     if (e.target && e.target.tagName === 'INPUT') return;          // typing a page number in the bar
+    if (e.target && e.target.tagName === 'BUTTON' && (k === 'Enter' || k === ' ')) return;      // a button that has the focus: the key presses that button
     if (e.repeat || e.ctrlKey || e.altKey || e.metaKey || !heard('key', k)) return;
     if (window.FT_LIVE && window.FT_LIVE.use) return;            // the speaker is using the report itself (Esc ends that)
-    if (over.classList.contains('on') && k !== 'g' && k !== 'G' && k !== 'Escape') return;
-    if (k === 'ArrowRight' || k === 'PageDown' || k === ' ' || (k === 'Enter' && !typed)) { e.preventDefault(); next(); }
+    const digit = k.length === 1 && k >= '0' && k <= '9';
+    if (digit) { type(k); return; }
+    if (k === 'Enter' && typed) {                                // a number was typed: go there, if there is such a slide
+      const n = +typed; untype();
+      if (n >= 1 && n <= slides.length) { over.classList.remove('on'); go(n - 1, { force: true }); } else flash('頁碼請輸入 1 到 ' + slides.length);
+      return;
+    }
+    if (k === 'Backspace' && typed) { e.preventDefault(); const rest = typed.slice(0, -1); untype(); if (rest) { typed = ''; [...rest].forEach(type); } return; }      // takes back a digit
+    if (k === 'Escape') {                                        // one thing at a time
+      if (typed) untype(); else if (over.classList.contains('on')) over.classList.remove('on'); else if (slides[i].escape) slides[i].escape();
+      return;
+    }
+    if (over.classList.contains('on')) {                         // the overview: the arrows move the frame, Enter goes there
+      const c = cols();
+      if (k === 'ArrowRight') { e.preventDefault(); pick(sel + 1); } else if (k === 'ArrowLeft') { e.preventDefault(); pick(sel - 1); }
+      else if (k === 'ArrowDown') { e.preventDefault(); pick(sel + c); } else if (k === 'ArrowUp') { e.preventDefault(); pick(sel - c); }
+      else if (k === 'Home') { e.preventDefault(); pick(0); } else if (k === 'End') { e.preventDefault(); pick(slides.length - 1); }
+      else if (k === 'Enter' || k === ' ') { e.preventDefault(); over.classList.remove('on'); go(sel, { force: true }); }
+      else if (k === 'g' || k === 'G') overview();
+      return;
+    }
+    untype();                                                    // any other key: the number is given up
+    if (k === 'ArrowRight' || k === 'PageDown' || k === ' ' || k === 'Enter') { e.preventDefault(); next(); }
     else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'Backspace') { e.preventDefault(); prev(); }
-    else if (k === 'Home') go(0); else if (k === 'End') go(slides.length - 1);
-    else if (k >= '0' && k <= '9') { typed += k; dirty = true; }
-    else if (k === 'Enter' && typed) { const n = +typed - 1; typed = ''; go(n, { force: true }); }
-    else if (k === 'Escape') { typed = ''; over.classList.remove('on'); notes.classList.remove('on'); if (slides[i].escape) slides[i].escape(); }
+    else if (k === 'Home') { if (i === 0) flash('已經是第一頁'); else go(0); } else if (k === 'End') { if (i === slides.length - 1) flash('已經是最後一頁'); else go(slides.length - 1); }
     else if (k === 'f' || k === 'F') full();
     else if (k === 'n' || k === 'N') { notes.classList.toggle('on'); placeNav(); }
     else if (k === 'p' || k === 'P') presenter();
@@ -2939,7 +2993,7 @@ window.FT_PLATES = {};
     else if (k === ']' || k === '[') { rate = Math.max(0.5, Math.min(4, +(rate * (k === ']' ? 1.15 : 1 / 1.15)).toFixed(2))); store('ft-rate', rate); flash('動畫速度 × ' + rate.toFixed(2)); }
     else if (k === 'h' || k === 'H') { hq = !hq; size(); flash(hq ? '高解析度：開' : '高解析度：關'); }
     else if ((k === 'v' || k === 'V') && world) { world.fly = !world.fly; flash(world.fly ? '鏡頭飛行轉場：開' : '鏡頭飛行轉場：關'); }
-    else if (k === '?') flash('→ 下一頁　← 上一頁　Home 第一頁　數字＋Enter 跳頁　F 全螢幕　N 備忘稿　P 講者視窗　G 總覽　R 重播　[ ] 速度　I 操作報告');
+    else if (k === '?') flash('→　空白鍵　Enter　下一頁　　←　Backspace　滑鼠右鍵　上一頁　　Home／End　第一頁／最後一頁　　數字＋Enter　跳頁　　Esc　關閉卡片、總覽或取消輸入　　G　總覽（方向鍵選頁，Enter 前往）　　R　重播本頁　　N　講稿　　P　講者視窗　　F　全螢幕　　[ ]　動畫速度　　I　操作報告（導讀頁）', 9000);
   }
   addEventListener('keydown', key);
   // where on the slide (in its own 1920 x 1080 units) the mouse is
@@ -2991,7 +3045,7 @@ window.FT_PLATES = {};
     if (window.FT_LIVE && window.FT_LIVE.use) return;
     if (dx < 0 ? i === slides.length - 1 : i === 0) { flash(dx < 0 ? '已經是最後一頁' : '已經是第一頁'); return; }
     if (s.busy && s.busy()) s.escape();
-    go(dx < 0 ? i + 1 : i - 1);
+    if (dx < 0) go(i + 1); else go(i - 1, { done: true });
   });
   addEventListener('touchcancel', () => { if (tch && tch.held && slides[i].up) slides[i].up(); tch = null; });
 
