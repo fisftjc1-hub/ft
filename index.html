@@ -2401,6 +2401,10 @@ window.FT_PLATES = {};
   // camera it covers the same part of the page as before.
   const DIST = 4.5 / Math.tan(20 * Math.PI / 180);
   const back = z => { const f = 1 - z / DIST; return m4.chain(m4.trs(0, 0, (1 - f) * DIST), m4.scl(f, f, f)); };
+  // An object that comes forward (z, towards the viewer) from its place (x, y in slide pixels) moves along the line
+  // to the resting eye: seen from there it stays on its place and only grows. Raised straight out of the page it
+  // would slide away from the middle of the page, off the 2D marks drawn for that place (the frame under the mouse).
+  const fwd = (x, y, z) => { const q = 1 - z / DIST; return m4.trs(X(x) * q, Y(y) * q, z); };
 
   // ---- manual against the tool: two trays of 100 tiles. A tile that has been examined rises out of its tray.
   //      Manual: one at a time. The tool: a whole column at a time, behind a bar of light.
@@ -2456,7 +2460,7 @@ window.FT_PLATES = {};
     CELL.forEach(([x, dy], i) => {
       const met = RULES[i].hit, k = prog(px, x - 4, x + 30), hit = met ? eo(prog(t, 4.5 + nh * 0.05, 5.0 + nh * 0.05)) : 0, off = met ? 0 : eo(prog(t, 4.5, 5.0)), up = UI ? UI.lift(i) : 0; if (met) nh++;
       const s = 0.138 * (1 + 0.16 * hit + 0.34 * up), turn = 0.62 + (k > 0 && !still() ? t * 0.5 : 0) * (1 - hit) * (1 - off);
-      const M = m4.chain(back(-0.9), m4.trs(X(x), Y(y + dy), 0.02 + 0.26 * hit + 0.3 * up), m4.rotX(0.5), m4.rotY(turn), m4.scl(s, s, s));
+      const M = m4.chain(back(-0.9), fwd(x, y + dy, 0.02 + 0.26 * hit + 0.3 * up), m4.rotX(0.5), m4.rotY(turn), m4.scl(s, s, s));
       const lit = k * (1 - 0.72 * off) + 0.5 * up * (1 - hit);
       out.push({ mesh: 'cube', M, color: k > 0 ? mix(mix(DARK, YEL, Math.min(1, lit)), RED, hit) : DARK, emis: mul(mix([0.7, 0.56, 0.0], [1.1, 0.14, 0.09], hit), Math.min(1.2, lit + 0.25 * up * hit)), keep: UI && UI.open() === i, tag: 'cube' + i });
     });
@@ -2615,7 +2619,7 @@ window.FT_PLATES = {};
       const t0 = T + 0.2 + (x - Q.VX) / 480, k = pop(prog(t, t0, t0 + 0.3)), met = RULES[i].hit, hit = met ? eo(prog(t, T + 1.5 + nh * 0.05, T + 1.9 + nh * 0.05)) : 0, off = met ? 0 : eo(prog(t, T + 1.5, T + 1.9)); if (met) nh++;
       if (k <= 0) return;
       const s = 0.2 * k * (1 + 0.14 * hit), lit = 1 - 0.72 * off;
-      out.push({ mesh: 'cube', M: m4.chain(back(-0.9), m4.trs(X(x), Y(cy0 + dy), 0.02 + 0.2 * hit), m4.rotX(0.5), m4.rotY(0.62), m4.scl(s, s, s)), color: mix(mix(DARK, YEL, lit), RED, hit), emis: mul(mix([0.7, 0.56, 0.0], [1.1, 0.14, 0.09], hit), lit), tag: 'q' + i });
+      out.push({ mesh: 'cube', M: m4.chain(back(-0.9), fwd(x, cy0 + dy, 0.02 + 0.2 * hit), m4.rotX(0.5), m4.rotY(0.62), m4.scl(s, s, s)), color: mix(mix(DARK, YEL, lit), RED, hit), emis: mul(mix([0.7, 0.56, 0.0], [1.1, 0.14, 0.09], hit), lit), tag: 'q' + i });
     });
     Q.SRC.forEach(([x, y], j) => {
       const t0 = T + 0.3 + j * 0.3, k = pop(prog(t, t0, t0 + 0.4)); if (k <= 0) return;
