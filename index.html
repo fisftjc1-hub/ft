@@ -19,7 +19,7 @@ html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:"Micr
 body.idle #stage{cursor:none}
 #hud{position:absolute;left:50%;top:50%;width:var(--sw);height:calc(var(--sw)*.5625);transform:translate(-50%,-50%);pointer-events:none}
 #track{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.06);transition:opacity .4s}
-#bar{height:100%;width:0;background:#FFE600;opacity:.7}
+#bar{height:100%;width:100%;background:#FFE600;opacity:.7;transform:scaleX(0);transform-origin:0 50%;will-change:transform}
 #num{position:absolute;left:3.96%;bottom:2%;font:calc(var(--sw)*.0068)/1 Consolas,monospace;letter-spacing:.22em;color:#5a5f70;transition:opacity .4s}
 #notes{position:fixed;left:0;right:0;bottom:0;max-height:38vh;overflow:auto;background:rgba(10,10,16,.94);border-top:1px solid #33364a;color:#e4e5ea;padding:16px 28px 22px;display:none}
 #notes.on{display:block}#notes h4{margin:0 0 8px;color:#FFE600;font-size:15px;letter-spacing:.06em}#notes p{margin:0;font-size:19px;line-height:1.7}
@@ -70,8 +70,8 @@ html.roll #stage,html.roll #hud{position:fixed}
 #help.on{display:flex}
 #help div{max-width:520px;max-height:100%;overflow:auto;box-sizing:border-box;background:#14151e;border:1px solid #33364a;border-radius:12px;padding:14px 20px;color:#e4e5ea;font-size:15px;line-height:1.7}
 #help h4{margin:0 0 4px;color:#FFE600;font-size:16px}#help p{margin:5px 0}#help b{color:#fff}#help .x{color:#8b90a0;font-size:13px;margin-top:8px}
-#live{position:absolute;left:14.0625%;top:24.074%;width:46.875%;height:64.815%;perspective:1500px;opacity:0;transition:opacity .45s;pointer-events:none}
-#live.on{opacity:1}#live.use{pointer-events:auto}
+#live{position:absolute;left:14.0625%;top:24.074%;width:46.875%;height:64.815%;perspective:1500px;opacity:0;visibility:hidden;transition:opacity .45s,visibility 0s .45s;pointer-events:none}
+#live.on{opacity:1;visibility:visible;transition:opacity .45s,visibility 0s}#live.use{pointer-events:auto}
 #card{position:absolute;inset:0;overflow:hidden;border-radius:calc(var(--sw)*.0052);background:#fff;box-shadow:0 18px 50px rgba(0,0,0,.7);transform-origin:50% 62%}
 #live.use #card{outline:3px solid #FFE600}
 #rep{position:absolute;left:0;top:0;width:1440px;height:12000px;border:0;transform-origin:0 0;transition-property:transform;transition-timing-function:cubic-bezier(.65,0,.35,1)}
@@ -2805,12 +2805,30 @@ window.FT_PLATES = {};
   // a number being typed: shown at the top on every kind of slide, forgotten when nothing follows for three seconds
   function untype() { if (!typed) return; typed = ''; dirty = true; if (flash.typed) { flash.typed = false; tip.classList.remove('on'); } }
   function type(k) { typed = (typed + k).slice(0, 3); typedAt = now(); dirty = true; flash('前往第 ' + typed + ' 頁：按 Enter　（Esc 取消）', 3000); flash.typed = true; }
+  // The line of progress along the bottom (v0.18). Its width used to be set on every frame. With the report of the
+  // tour in the page (not shown, but a very large frame) that cost frames on every slide: 54 to 56 a second on a
+  // 75 Hz screen while a slide played, 75 once the line stood still. The line is now as wide as the slide and
+  // scaled, and the browser moves it by itself: one transition for a slide, planned again only when the slide, its
+  // clock or the speed changes. (A new scale from here on every frame was worse than the width.) Nothing else is
+  // written to the page from here unless it has changed.
+  let barKey = '', hudOp = '', hudNum = '';
   function hud(t) {
     const s = slides[i]; navSync();
-    bar.style.width = ((i + Math.min(1, t / s.dur)) / slides.length * 100).toFixed(2) + '%';
-    const plain = kindOf(s) !== 'content';
-    num.style.opacity = plain ? 0 : 1; bar.parentNode.style.opacity = plain ? 0 : 1;
-    num.textContent = String(i + 1).padStart(2, '0') + ' / ' + slides.length + (typed ? '   → ' + typed : '');
+    const key = i + '|' + entered + '|' + rate;
+    if (key !== barKey) {
+      barKey = key;
+      const N = slides.length, t0 = clock(), left = (s.dur - Math.max(0, t0)) / rate, wait = Math.max(0, -t0) / rate;
+      const at = p => 'scaleX(' + ((i + Math.max(0, Math.min(1, p))) / N).toFixed(5) + ')';
+      bar.style.transition = 'none'; bar.style.transform = at(t0 / s.dur);
+      if (left > 0.05) {
+        bar.getBoundingClientRect();                               // the line stands at its start before it is sent off
+        bar.style.transition = 'transform ' + left.toFixed(3) + 's linear ' + wait.toFixed(3) + 's'; bar.style.transform = at(1);
+      }
+    }
+    const op = kindOf(s) !== 'content' ? '0' : '1';
+    if (op !== hudOp) { hudOp = op; num.style.opacity = op; bar.parentNode.style.opacity = op; }
+    const label = String(i + 1).padStart(2, '0') + ' / ' + slides.length + (typed ? '   → ' + typed : '');
+    if (label !== hudNum) { hudNum = label; num.textContent = label; }
   }
   function side() {
     const s = slides[i];
