@@ -673,7 +673,7 @@ window.FT_PLATES = {};
   section('02', ['Forensics Triage', '工具介紹'], '第二部分：我們把 Triage 的工作寫成一支在 EnCase 內執行的腳本。');
 
   // ------------------------------------------------------------------ manual vs automated
-  const cmp = [['時間', '需逐一開啟各類跡證，時間隨證物大小增加', '保守估計{每台約 10 分鐘}，依檔案數量與分析項目而定'],
+  const cmp = [['時間', '需逐一開啟各類跡證，時間隨證物大小增加', '{每台約 10 分鐘}，依檔案數量與分析項目而定'],
   ['一致性', '檢視的項目與判斷標準，仰賴個人經驗', '{20 條}預先定義的規則，每次檢視相同項目'],
   ['可讀性', '產出為技術紀錄，需由鑑識人員轉述', '產出分析師版，以及{不含技術名詞}的客戶版']];
   const barsL = (() => { const r = rng(21); return Array.from({ length: 46 }, () => 0.25 + r() * 0.75); })();
@@ -748,7 +748,7 @@ window.FT_PLATES = {};
       const BX = 400, WI = 1069, WS = 45, y1 = 588, y2 = 648;
       text(ctx, '一般流程', 130, y1 + 26, t, { size: 30, weight: 700, color: C.grey, t0: 4.9 });
       G(ctx, 'img', { t0: 4.9, effect: 'wipe', dur: 1.0 }, c => box(c, BX, y1, WI * eo(prog(t, 4.9, 5.9)), 32, { fill: 'rgba(255,255,255,0.16)', r: 4 }));
-      text(ctx, '製作映像檔　1 TB 約 4 小時（保守估計）', BX + 20, y1 + 25, t, { size: 24, color: C.soft, t0: 5.1, cps: 60 });
+      text(ctx, '製作映像檔　1 TB 約 4 小時', BX + 20, y1 + 25, t, { size: 24, color: C.soft, t0: 5.1, cps: 60 });
       G(ctx, 's1', { t0: 5.9, effect: 'fade', dur: 0.4 }, c => box(c, BX + WI + 4, y1, WS, 32, { fill: C.ey, r: 4, glow: 14, alpha: prog(t, 5.9, 6.3) }));
       text(ctx, '＋ 腳本　約 10 分鐘', BX + WI + WS + 22, y1 + 25, t, { size: 24, color: C.ey, t0: 5.9, cps: 60 });
       text(ctx, '快速路徑', 130, y2 + 26, t, { size: 30, weight: 700, hot: true, t0: 6.5 });
@@ -859,7 +859,7 @@ window.FT_PLATES = {};
       const B = R2 + 1.2;
       G(ctx, 'rule', { t0: B, effect: 'wipe', dur: 0.8 }, c => seg(c, 130, 866, lerp(130, 1790, eo(prog(t, B, B + 0.8))), 866, { color: C.faint }));
       text(ctx, '若以一套設備逐台製作映像檔：20 台 × 約 4 小時（以 1 TB 估計），當天無法完成。', 130, 918, t, { size: 26, color: C.grey, t0: B + 0.2, cps: 60 });
-      text(ctx, '經防寫設備直接執行腳本（規劃中）：20 台 × 約 10 分鐘，{多套設備同時進行，當天排出優先順序。}', 130, 966, t, { size: 30, t0: B + 0.8, cps: 60 });
+      text(ctx, '經防寫設備直接執行腳本：20 台 × 約 10 分鐘，{多套設備同時進行，當天排出優先順序。}', 130, 966, t, { size: 30, t0: B + 0.8, cps: 60 });
       text(ctx, '每台各產出一份報告；跨台的先後，由鑑識人員依各台報告彙整。', 130, 1012, t, { size: 22, color: C.grey, t0: B + 1.4, cps: 60 });
       if (!XP() && window.FT_3D && window.FT_3D.overlay) window.FT_3D.overlay(ctx, t);        // the card of a clicked laptop, over everything
     });
