@@ -610,7 +610,7 @@ window.FT_PLATES = {};
   const QSRC = [['usb', '隨身碟'], ['disc-3', '光碟'], ['cloud', '雲端硬碟網站'], ['network', '檔案伺服器']];
   window.FT_QS = Object.assign({ rows: QG.RY.map(y => [QG.X - 30, y, 1790 - QG.X + 60, QG.RH]), targets: qs.map(q => q[3]), cells: qcell, SRC: QSRC.map((s, j) => [QG.VX + 62 + j * 128, QG.RY[2] + QG.RH / 2 - 26]) }, QG);
   S('questions', 'Triage 要回答的三個問題', 9,
-    'Triage 不是要得出最後的結論，而是在完整分析之前回答三個問題。畫面左邊是模擬案例的那台工作電腦，右邊是它的初篩報告對這三個問題的回答，都是實際結果。第一，有哪些風險行為：20 條規則中，有 11 條留有符合的紀錄。第二，從哪裡開始：符合規則的紀錄都落在 4 月 28 日 14:15 到 15:43，時間條上的細線是當天全部 80 筆行為紀錄。第三，還需要保全什麼：紀錄中出現隨身碟、光碟、雲端硬碟網站與檔案伺服器。所以 Triage 的結論是「先看什麼、接著查什麼」。沒有符合規則的紀錄，不代表沒有發生。',
+    'Triage 在完整分析之前回答三個問題，最後的結論留給完整分析。畫面左邊是模擬案例的那台工作電腦，右邊是它的初篩報告對這三個問題的回答，都是實際結果。第一，有哪些風險行為：20 條規則中，有 11 條留有符合的紀錄。第二，從哪裡開始：符合規則的紀錄都落在 4 月 28 日 14:15 到 15:43，時間條上的細線是當天全部 80 筆行為紀錄。第三，還需要保全什麼：紀錄中出現隨身碟、光碟、雲端硬碟網站與檔案伺服器。所以 Triage 的結論是「先看什麼、接著查什麼」。沒有符合規則的紀錄，不代表沒有發生。',
     (ctx, t) => {
       bg(ctx, t, { cx: 0.3 }); head(ctx, t, 'TRIAGE  ·  THREE QUESTIONS', 'Triage 要回答的三個問題');
       const { RY, RH, X, VX, LX, LY, TS } = QG, UI = !XP() && window.FT_QSUI ? window.FT_QSUI : null, W3 = !XP() && !!window.FT_WORLD_ON, RED = '#FF4136';
@@ -666,7 +666,7 @@ window.FT_PLATES = {};
           });
         }
       });
-      text(ctx, 'Triage 的結論不是「有沒有問題」，而是{「先看什麼、接著查什麼」}。', 130, 1004, t, { size: 30, weight: 500, t0: 6.6, cps: 36 });
+      text(ctx, 'Triage 的結論是{「先看什麼、接著查什麼」}。', 130, 1004, t, { size: 30, weight: 500, t0: 6.6, cps: 36 });
     });
 
   section('02', ['Forensics Triage', '工具介紹'], '第二部分：我們把 Triage 的工作寫成一支在 EnCase 內執行的腳本。');
@@ -725,7 +725,6 @@ window.FT_PLATES = {};
     '前面說明了腳本讓 Triage 這一步從逐項檢視變成約 10 分鐘。先說明，這一頁是規劃中的做法，還沒有在實際案件使用；經防寫設備讀取原始硬碟，我們評估是可行的。如果時間更緊迫，還可以再提早一步：先不製作映像檔，把原始硬碟經防寫設備接上工作站，在 EnCase 以預覽方式加入後直接執行腳本，當場得到初篩報告。畫面上方是同一條流程，Triage 的位置從「取證」之後移到「取證」之前。製作映像檔以 1 TB 約 4 小時估計（保守），初篩結果可以提早約 4 小時取得；映像檔之後仍要補做，所以總時間沒有省下來，是先有了方向。這條路徑的前提是防寫設備：它讓資料只能從原始硬碟讀出，工作站送回硬碟的寫入都會被擋下，所以直接對原始硬碟執行腳本，工作站不會寫入原始硬碟。畫面下方的動畫就是這件事：黃色的資料往工作站走，紅色的寫入停在防寫設備。取捨是沒有映像檔與雜湊值，所以原始設備仍然要保全；之後依初篩排出的優先順序補做完整取證，可能進入法律程序的案件排在最前面。可能進入法律程序的設備，也可以先製作映像檔再執行。是否採用這條路徑，是案件開始時的專業判斷。',
     (ctx, t) => {
       bg(ctx, t, { cy: 0.5 }); head(ctx, t, 'WHEN TIME IS SHORT  ·  TRIAGE BEFORE IMAGING  ·  WRITE-BLOCKED', '時間更緊迫時：不製作映像檔，經防寫設備直接產出初篩報告');
-      { const pa = XP() ? 1 : prog(t, 0.6, 1.0); box(ctx, 1426, 82, 364, 50, { stroke: C.ey, lw: 2, r: 25, alpha: pa, dash: [7, 6] }); text(ctx, '規劃中・尚未用於實際案件', 1608, 116, t, { size: 22, weight: 700, color: C.ey, align: 'center', t0: 0.6, cps: 60 }); }
       const ax = 400, x0 = 200, dx = 380, xs = stages.map((_, i) => x0 + i * dx), M0 = (xs[1] + xs[2]) / 2 - 10, M1 = (xs[0] + xs[1]) / 2 - 10;
       const off = XP() ? 1 : 1 - prog(t, 2.2, 2.7);                    // acquisition, before it is greyed
       seg(ctx, x0, ax, xs[4], ax, { color: C.grey, lw: 2 });
@@ -859,7 +858,7 @@ window.FT_PLATES = {};
       const B = R2 + 1.2;
       G(ctx, 'rule', { t0: B, effect: 'wipe', dur: 0.8 }, c => seg(c, 130, 866, lerp(130, 1790, eo(prog(t, B, B + 0.8))), 866, { color: C.faint }));
       text(ctx, '若以一套設備逐台製作映像檔：20 台 × 約 4 小時（以 1 TB 估計），當天無法完成。', 130, 918, t, { size: 26, color: C.grey, t0: B + 0.2, cps: 60 });
-      text(ctx, '經防寫設備直接執行腳本（規劃中）：20 台 × 約 10 分鐘（保守估計），{多套設備同時進行，當天排出優先順序。}', 130, 966, t, { size: 30, t0: B + 0.8, cps: 60 });
+      text(ctx, '經防寫設備直接執行腳本（規劃中）：20 台 × 約 10 分鐘，{多套設備同時進行，當天排出優先順序。}', 130, 966, t, { size: 30, t0: B + 0.8, cps: 60 });
       text(ctx, '每台各產出一份報告；跨台的先後，由鑑識人員依各台報告彙整。', 130, 1012, t, { size: 22, color: C.grey, t0: B + 1.4, cps: 60 });
       if (!XP() && window.FT_3D && window.FT_3D.overlay) window.FT_3D.overlay(ctx, t);        // the card of a clicked laptop, over everything
     });
@@ -968,7 +967,9 @@ window.FT_PLATES = {};
   // HTML editions a wording under the mouse shows the record it comes from, and a field shows where it went.
   const TRL = [['Target', 'E:\\JMXM021\\JMXM021-技术资料-项目概况.doc'], ['Drive type', 'Removable'], ['Volume label', 'PETERZHAO'], ['Target created', '2016-04-28 06:38:38Z'], ['Target modified', '2016-04-26 06:25:04Z']];
   // right side: [text, source lines on the left, what was done, time it starts]
-  const TRR = [['外接裝置上有從別處放入的檔案', [3, 4], '建立時間晚於修改時間', 5.8], ['2016-04-28 14:38', [3], '換算為台灣時間（UTC+8）', 4.6], ['外接裝置（例如 USB 隨身碟）', [1], '磁碟類型', 2.6], ['磁碟名稱　PETERZHAO', [2], '磁碟區標籤', 3.6], ['E:\\JMXM021\\JMXM021-技术资料-项目概况.doc', [0], '開啟的檔案', 1.6]];
+  // (the first wording, the rule that was met, is a reading of the record as a whole: the kind of drive, the file and its
+  // two times. It is shown as coming from the whole record, not from one or two of its lines.)
+  const TRR = [['外接裝置上有從別處放入的檔案', [0, 1, 2, 3, 4], '建立時間晚於修改時間', 5.8], ['2016-04-28 14:38', [3], '換算為台灣時間（UTC+8）', 4.6], ['外接裝置（例如 USB 隨身碟）', [1], '磁碟類型', 2.6], ['磁碟名稱　PETERZHAO', [2], '磁碟區標籤', 3.6], ['E:\\JMXM021\\JMXM021-技术资料-项目概况.doc', [0], '開啟的檔案', 1.6]];
   const tr = [['LNK · Jump List', '開啟過哪些檔案'], ['Shellbags', '瀏覽過哪些資料夾'], ['USBSTOR', '接過哪些外接裝置'], ['瀏覽器歷程', '去過哪些網站、下載了什麼'], ['$Recycle.Bin', '刪除了什麼、什麼時候刪'], ['壓縮檔成員清單', '哪些檔案被包在一起']];
   const TG = { LX: 130, RX: 1010, CW: 780, CY: 320, CH: 380, ly: n => 408 + n * 58, ry: n => 404 + n * 66, chipY: 838, chipH: 58 };
   let chips = null;
@@ -990,7 +991,7 @@ window.FT_PLATES = {};
     });
     ctx.restore();
   }
-  S('translate', '將系統紀錄轉換為可閱讀的行為描述', 9,
+  S('translate', '將系統紀錄轉換為可閱讀的行為描述', 9.8,
     '這一頁用模擬案例裡的一筆真實紀錄說明。左邊是系統留下的原始紀錄：使用者開啟檔案時，Windows 會在 Jump List 留下一筆捷徑資料，記著檔案的路徑、所在磁碟的類型與磁碟區標籤，以及檔案本身的建立與修改時間。右邊是客戶版報告對同一筆紀錄的寫法：路徑照列；磁碟類型 Removable 寫成「外接裝置（例如 USB 隨身碟）」；磁碟區標籤寫成「磁碟名稱」；時間由 UTC 換算為台灣時間；而檔案在這支隨身碟上的建立時間晚於修改時間，表示內容先在別處寫成、之後才放上去，所以符合規則「外接裝置上有從別處放入的檔案」。下方是其他類別的紀錄在報告中的說法；另外還有程式執行、開關機與登入等紀錄。每一筆都保留編號，可以回到分析師版與原始紀錄查證。',
     (ctx, t) => {
       bg(ctx, t, { cx: 0.47 }); head(ctx, t, 'FROM ARTIFACTS  ·  TO PLAIN LANGUAGE', '將系統紀錄轉換為可閱讀的行為描述');
@@ -1007,16 +1008,22 @@ window.FT_PLATES = {};
       text(ctx, 'Jump List　·　5d0073b6a0d28edd.automaticDestinations-ms', LX + 40, CY + 44, t, { size: 18, fam: MONO, color: C.dim, t0: 0.7, cps: 120 });
       text(ctx, '風險行為與外接裝置的紀錄　·　模擬案例', RX + 40, CY + 44, t, { size: 18, color: C.dim, t0: 1.3, cps: 120 });
       // the record
+      // the wording that comes from the whole record: one frame around all its lines
+      const whole = r => r[1].length === TRL.length, WB = [LX + 16, ly(0) - 36, CW - 32, ly(TRL.length - 1) + 16 - (ly(0) - 36)];
+      TRR.forEach((r, n) => {
+        if (!whole(r)) return; const u = r[3], k = Math.max(XP() ? 0 : prog(t, u - 0.1, u + 0.1) * (1 - prog(t, u + 0.9, u + 1.4)), hotR === n ? 1 : 0);
+        if (k > 0) { fillBox(ctx, WB[0], WB[1], WB[2], WB[3], 'rgba(255,230,0,' + (0.10 * k).toFixed(3) + ')', 1, 10); box(ctx, WB[0], WB[1], WB[2], WB[3], { stroke: C.ey, lw: 2, r: 10, alpha: k }); }
+      });
       TRL.forEach((l, n) => {
-        const y = ly(n), used = TRR.filter(r => r[1].includes(n)).map(r => r[3]), first = Math.min(...used);
-        const flash = XP() ? 0 : Math.max(...used.map(u => prog(t, u - 0.1, u + 0.1) * (1 - prog(t, u + 0.9, u + 1.4)))), link = (hotR >= 0 && TRR[hotR][1].includes(n)) || hotL === n ? 1 : 0, k = Math.max(flash, link);
+        const y = ly(n), used = TRR.filter(r => !whole(r) && r[1].includes(n)).map(r => r[3]), first = Math.min(...TRR.filter(r => r[1].includes(n)).map(r => r[3]));
+        const flash = XP() ? 0 : Math.max(0, ...used.map(u => prog(t, u - 0.1, u + 0.1) * (1 - prog(t, u + 0.9, u + 1.4)))), link = (hotR >= 0 && !whole(TRR[hotR]) && TRR[hotR][1].includes(n)) || hotL === n ? 1 : 0, k = Math.max(flash, link);
         if (k > 0) { fillBox(ctx, LX + 16, y - 36, CW - 32, 52, 'rgba(255,230,0,' + (0.12 * k).toFixed(3) + ')', 1, 8); box(ctx, LX + 16, y - 36, CW - 32, 52, { stroke: C.ey, lw: 1.5, r: 8, alpha: k }); }
         text(ctx, l[0], LX + 40, y, t, { size: 22, fam: MONO, color: C.cool, t0: 0.8 + n * 0.08, cps: 90 });
         text(ctx, l[1], LX + 262, y, t, { size: 22, fam: MONO, color: t > first + 0.1 || XP() ? C.white : C.soft, t0: 0.9 + n * 0.08, cps: 90 });
       });
       // the wording
       TRR.forEach((r, n) => {
-        const y = ry(n), t0 = r[3], link = hotR === n || (hotL >= 0 && r[1].includes(hotL)) ? 1 : 0;
+        const y = ry(n), t0 = r[3], link = hotR === n || (hotL >= 0 && !whole(r) && r[1].includes(hotL)) ? 1 : 0;
         if (link) { fillBox(ctx, RX + 16, y - 40, CW - 32, 58, 'rgba(255,230,0,0.10)', 1, 8); box(ctx, RX + 16, y - 40, CW - 32, 58, { stroke: C.ey, lw: 1.5, r: 8 }); }
         // what travels across: a point of light from the field(s) to the wording
         if (!XP()) r[1].forEach(m => { const p = prog(t, t0 - 0.1, t0 + 0.45); if (p > 0 && p < 1) { const e = eio(p), x = lerp(LX + CW - 10, RX + 30, e), yy = lerp(ly(m) - 10, y - 10, e) - 26 * Math.sin(Math.PI * e); dot(ctx, x, yy, 5, { alpha: 1 }); } });
@@ -1036,13 +1043,17 @@ window.FT_PLATES = {};
       text(ctx, '其他類別的紀錄，報告也以同樣的方式改寫', LX, chipY - 26, t, { size: 22, color: C.grey, t0: T2, cps: 60 });
       if (!chips) { let x = LX; chips = tr.map(p => { const w = Math.max(widthOf(ctx, p[1], { size: 22 }), widthOf(ctx, p[0], { size: 20, fam: MONO })) + 46, b = [x, chipY, w, chipH]; x += w + 16; return b; }); }
       const ca = XP() ? 1 : prog(t, T2 + 0.2, T2 + 0.7);
+      // once, without the mouse: each kind in turn shows the name of the system record behind it, then turns back.
+      // (That a kind answers to the mouse is easy to miss; this shows what is behind the wording, and that it is there.)
+      const show = n => { if (XP() || !UI) return 0; const s = T2 + 0.9 + n * 0.15; return eo(prog(t, s, s + 0.2)) * (1 - eo(prog(t, s + 0.9, s + 1.1))); };
+      if (UI) text(ctx, '滑鼠移到任一項，顯示它對應的系統紀錄', 1790, chipY - 26, t, { size: 22, color: C.ey, align: 'right', t0: T2 + 0.9, cps: 70 });
       tr.forEach((p, n) => {
-        const [x, y, w, h] = chips[n], k = UI ? UI.chip(n) : 0;
+        const [x, y, w, h] = chips[n], k = UI ? Math.max(UI.chip(n), show(n)) : 0;
         G(ctx, 'chip' + n, { t0: T2 + 0.2, effect: 'fade', dur: 0.5 }, c => { if (ca <= 0) return; fillBox(c, x, y, w, h, 'rgba(18,19,30,0.9)', ca, 29); box(c, x, y, w, h, { stroke: k > 0.5 ? C.cool : 'rgba(255,255,255,0.4)', lw: 1.5, r: 29, alpha: ca }); });
         if (k < 0.5) text(ctx, p[1], x + w / 2, y + 38, t, { size: 22, align: 'center', t0: T2 + 0.3, cps: 99, alpha: 1 - 2 * k });
         else text(ctx, p[0], x + w / 2, y + 37, t, { size: 20, fam: MONO, color: C.cool, align: 'center', alpha: 2 * k - 1 });
       });
-      text(ctx, UI ? '時間以台灣時間呈現；每一筆都保留編號，可回到分析師版與原始紀錄查證。　移到任一列或任一類別上，可看它的來源。' : '時間以台灣時間呈現；每一筆都保留編號，可回到分析師版與原始紀錄查證。', LX, 1000, t, { size: 22, color: C.grey, t0: T2 + 0.9, cps: 70 });
+      text(ctx, UI ? '時間以台灣時間呈現；每一筆都保留編號，可回到分析師版與原始紀錄查證。　移到上方任一列，可看它的來源。' :'時間以台灣時間呈現；每一筆都保留編號，可回到分析師版與原始紀錄查證。', LX, 1000, t, { size: 22, color: C.grey, t0: T2 + 0.9, cps: 70 });
     });
 
   section('03', ['模擬案例的', '報告導讀'], '第三部分：回到模擬案例，看初篩報告呈現了什麼，以及這些內容在調查上的意義。（若要現場示範，可在這一頁切到 EnCase 執行腳本，等待時繼續講案例背景。）');
@@ -1050,27 +1061,28 @@ window.FT_PLATES = {};
   // ------------------------------------------------------------------ case background
   const bgItems = [['委託緣由', ['A 公司懷疑離職技術人員趙能嘉帶走了機密專案的技術資料；', '這是委託方的懷疑，有待調查。']], ['機密資料', '以「JMXM」加三位數字命名，存放於名為「JSZL」的檔案伺服器，僅限公司內部網路存取。'], ['公司規定', '工作電腦不得連上網際網路，也不得私自外接儲存裝置。']];
   const needsNames = ['上網行為', '瀏覽網路磁碟機', '資料存在本機', '資料存在外接裝置', '外傳資料'];
-  S('background', '案例背景：公司懷疑離職人員帶走機密資料', 11.5,
+  S('background', '案例背景：公司懷疑離職人員帶走機密資料', 7.5,
     '接下來用一個模擬案例說明，之後幾頁的數字都來自這個案例。這是一個數位鑑識的模擬案例（CTF），不是真實案件。A 公司懷疑離職的技術人員趙能嘉帶走了機密專案的技術資料；這是委託方的懷疑，還有待調查。機密專案的資料以「JMXM」加三位數字命名，存放在名為「JSZL」的檔案伺服器上，只能從公司內部網路存取。公司規定工作電腦不得連上網際網路，也不得私自外接儲存裝置。時程：4 月 28 日上午辦理離職手續，29 日交還工作電腦，30 日保全並製作映像檔。鑑定需求是：辦理離職手續之後，是否使用工作電腦存取、複製、外傳機密專案的技術資料，分成五類。',
     (ctx, t) => {
       bg(ctx, t, { cx: 0.4 }); head(ctx, t, 'SIMULATED CASE  ·  模擬案例', '案例背景：公司懷疑離職人員帶走機密資料');
-      let y = 330;
-      bgItems.forEach((it, i) => {
-        const t0 = 1.0 + i * 1.5;
-        text(ctx, it[0], 130, y, t, { size: 22, color: C.ey, t0, ls: 6 });
-        const hgt = para(ctx, it[1], 130, y + 52, 900, t, { size: 32, t0: t0 + 0.2, cps: 44, lh: 50 });
+      // the three paragraphs on the left come in together, as one block; the dates on the right follow one by one
+      let y = 330; const TB = 0.8, fa = XP() ? 1 : eo(prog(t, TB, TB + 0.6));
+      bgItems.forEach(it => {
+        if (XP()) { text(ctx, it[0], 130, y, t, { size: 22, color: C.ey, t0: TB, ls: 6 }); y += 52 + para(ctx, it[1], 130, y + 52, 900, t, { size: 32, t0: TB, cps: 999, lh: 50 }) + 36; return; }
+        text(ctx, it[0], 130, y, t, { size: 22, color: C.ey, ls: 6, alpha: fa });
+        const hgt = para(ctx, it[1], 130, y + 52, 900, t, { size: 32, lh: 50, alpha: fa });
         y += 52 + hgt + 36;
       });
-      const lx = 1250, ly0 = 330, pts = [['4/28 上午', '辦理離職手續'], ['4/29', '交還工作電腦'], ['4/30', '保全並製作映像檔']];
-      text(ctx, '時程（2016 年）', lx - 12, 300, t, { size: 22, color: C.grey, t0: 5.4, ls: 4 });
-      G(ctx, 'tl', { t0: 5.6, effect: 'wipedown', dur: 1.5 }, c => seg(c, lx, ly0 + 40, lx, lerp(ly0 + 40, ly0 + 330, eo(prog(t, 5.6, 7.2))), { color: C.dim, lw: 2 }));
+      const lx = 1250, ly0 = 330, pts = [['4/28 上午', '辦理離職手續'], ['4/29', '交還工作電腦'], ['4/30', '保全並製作映像檔']], TL = 1.8;
+      text(ctx, '時程（2016 年）', lx - 12, 300, t, { size: 22, color: C.grey, t0: TL - 0.2, ls: 4 });
+      G(ctx, 'tl', { t0: TL, effect: 'wipedown', dur: 1.5 }, c => seg(c, lx, ly0 + 40, lx, lerp(ly0 + 40, ly0 + 330, eo(prog(t, TL, TL + 1.6))), { color: C.dim, lw: 2 }));
       pts.forEach((p, i) => {
-        const yy = ly0 + 60 + i * 120, t0 = 5.8 + i * 0.6, a = prog(t, t0, t0 + 0.3);
+        const yy = ly0 + 60 + i * 120, t0 = TL + 0.2 + i * 0.6, a = prog(t, t0, t0 + 0.3);
         G(ctx, 'pt' + i, { t0, effect: 'fade', dur: 0.4 }, c => { if (a <= 0) return; if (i === 0) dot(c, lx, yy, 10, { alpha: a }); else { c.save(); c.globalAlpha = a; c.fillStyle = '#101119'; c.beginPath(); c.arc(lx, yy, 9, 0, TAU); c.fill(); c.restore(); ring(c, lx, yy, 9, { color: C.white, lw: 2, alpha: a }); } });
         text(ctx, p[0], lx + 44, yy + 14, t, { size: 40, weight: 700, fam: NUM, hot: i === 0, t0 });
         text(ctx, p[1], lx + 290, yy + 12, t, { size: 30, color: C.soft, t0: t0 + 0.2 });
       });
-      const t1 = 8.0;
+      const t1 = 4.2;
       G(ctx, 'rule', { t0: t1, effect: 'wipe', dur: 0.8 }, c => seg(c, 130, 800, lerp(130, 1790, eo(prog(t, t1, t1 + 0.8))), 800, { color: C.faint }));
       text(ctx, '鑑定需求', 130, 856, t, { size: 22, color: C.ey, t0: t1 + 0.2, ls: 6 });
       text(ctx, '離職手續之後，是否使用工作電腦存取、複製、外傳機密專案的技術資料', 290, 858, t, { size: 30, t0: t1 + 0.4, cps: 50 });
@@ -1206,8 +1218,7 @@ window.FT_PLATES = {};
         else { const a = XP() ? 1 : prog(t, T3, T3 + 0.4); G(ctx, 'pill', { t0: T3, effect: 'fade', dur: 0.4 }, c => box(c, 1578, y - 42, 212, 60, { stroke: C.ey, lw: 2, r: 30, alpha: a, dash: [7, 6] })); text(ctx, '需深入分析', 1684, y - 2, t, { size: 28, weight: 700, color: C.ey, align: 'center', t0: T3, cps: 60 }); }
         G(ctx, 'row' + i, { t0: T, effect: 'fade', dur: 0.5 }, c => seg(c, 130, y + 40, 1790, y + 40, { color: C.faint, alpha: a0 }));
       });
-      text(ctx, '{「有紀錄」不等於已認定行為。}紀錄顯示的是電腦帳號（Administrator），不是人名；', 130, 964, t, { size: 26, color: C.soft, t0: T3 + 0.8, cps: 60 });
-      text(ctx, '實際操作者是誰、行為的原因或目的，需由深入分析與其他調查手段回答。', 130, 1008, t, { size: 26, color: C.soft, t0: T3 + 1.6, cps: 60 });
+      text(ctx, '{紀錄不等於行為。}實際發生了什麼，由分析師深入調查、交叉比對後回答。', 130, 985, t, { size: 30, color: C.soft, t0: T3 + 0.8, cps: 60 });
     });
 
   // ------------------------------------------------------------------ guided tour of the report
@@ -1253,7 +1264,7 @@ window.FT_PLATES = {};
       else {
         ctx.save(); ctx.globalAlpha = 0.9 * appear; if (sheet.complete) ctx.drawImage(sheet, mx, my, mw, mh); ctx.restore();
         if (k === 0) KEY.forEach(j => mapBox(ctx, SPANS[j], mx, my, mw, mh, prog(t, 2.6, 3.0), true));                  // where the three are
-        else if (k === 8) restSpans.forEach(sp => mapBox(ctx, sp, mx, my, mw, mh, prog(t, 0.4, 0.9), false));
+        else if (k === 8) restSpans.forEach(sp => mapBox(ctx, sp, mx, my, mw, mh, prog(t, 0.4, 0.9), true));        // (the same weight of line as on the pages before)
         else {
           const sa = KEY.includes(pk) ? SPANS[pk] : SPANS[k], sb = SPANS[k];
           mapBox(ctx, [lerp(sa[0], sb[0], m), lerp(sa[1], sb[1], m)], mx, my, mw, mh, 1, true);
@@ -1306,40 +1317,41 @@ window.FT_PLATES = {};
   // ------------------------------------------------------------------ two readers
   const colL = [['clock', '對照時間', '將重點時間線對上交易或帳務異常的時點'], ['file-search', '界定文件', '由檔案足跡與文件位置，列出需要調閱的文件'], ['list-checks', '列出對象', '由外接裝置、網路位置與雲端服務，列出保全與訪談對象']];
   const colR = [['scan-search', '回到跡證', '依紀錄編號回到原始跡證，查證每一筆紀錄'], ['microscope', '決定深入項目', '判斷哪些項目需要深入分析，例如還原已刪除的檔案'], ['ruler', '評估範圍', '評估深入調查的範圍與所需工時']];
-  S('roles', '不同角色如何使用這份報告', 9.5,
+  S('roles', '不同角色如何使用這份報告', 5.5,
     '同一次執行產出兩份報告，對應兩種讀者。鑑識會計與案件負責人閱讀客戶版：把重點時間線對上交易或帳務異常的時點；從檔案足跡與文件位置列出要調閱的文件；從外接裝置、網路位置、雲端服務列出需要保全或訪談的對象。數位鑑識人員閱讀分析師版：依紀錄編號回到原始跡證查證；判斷哪些項目需要深入分析；評估深入調查的範圍與所需工時。客戶版不使用技術名詞，閱讀時不需要數位鑑識背景。',
     (ctx, t) => {
       bg(ctx, t); head(ctx, t, 'TWO READERS  ·  TWO REPORTS', '不同角色如何使用這份報告');
       G(ctx, 'beam', { t0: 0.6, effect: 'wipedown', dur: 0.7 }, c => seg(c, 960, 300, 960, lerp(300, 900, eo(prog(t, 0.6, 1.3))), { color: C.dim }));
-      [[130, '鑑識會計與案件負責人', '閱讀客戶版「電腦行為摘要」', colL, C.white, 1.0], [1040, '數位鑑識人員', '閱讀分析師版', colR, C.ey, 4.2]].forEach(([x, name, sub, items, col, t0]) => {
-        text(ctx, name, x, 345, t, { size: 50, weight: 700, t0, hot: col === C.ey });
-        text(ctx, sub, x, 398, t, { size: 24, color: C.grey, t0: t0 + 0.4, ls: 3 });
+      // two steps: the left reader with its three uses at once, then the right one
+      [[130, '鑑識會計與案件負責人', '閱讀客戶版「電腦行為摘要」', colL, C.white, 0.9], [1040, '數位鑑識人員', '閱讀分析師版', colR, C.ey, 2.4]].forEach(([x, name, sub, items, col, t0]) => {
+        text(ctx, name, x, 345, t, { size: 50, weight: 700, t0, cps: 60, hot: col === C.ey });
+        text(ctx, sub, x, 398, t, { size: 24, color: C.grey, t0: t0 + 0.2, cps: 80, ls: 3 });
         items.forEach((it, i) => {
-          const y = 500 + i * 140, ti = t0 + 0.8 + i * 0.75, a = prog(t, ti, ti + 0.4);
+          const y = 500 + i * 140, ti = t0 + 0.3, a = prog(t, ti, ti + 0.4);
           G(ctx, 'ic' + x + '_' + i, { t0: ti, effect: 'fade', dur: 0.4 }, c => icon(c, it[0], x, y - 44, 64, { color: col === C.ey ? C.ey : '#F2F2F5', alpha: a, glow: col === C.ey ? 16 : 0 }));
-          text(ctx, it[1], x + 92, y - 10, t, { size: 36, weight: 700, t0: ti });
-          para(ctx, it[2], x + 92, y + 34, 680, t, { size: 26, color: C.soft, t0: ti + 0.2, cps: 60, lh: 38 });
+          text(ctx, it[1], x + 92, y - 10, t, { size: 36, weight: 700, t0: ti, cps: 60 });
+          para(ctx, it[2], x + 92, y + 34, 680, t, { size: 26, color: C.soft, t0: ti + 0.1, cps: 120, lh: 38 });
         });
       });
-      text(ctx, '客戶版不使用技術名詞，{閱讀時不需要數位鑑識背景。}', 130, 985, t, { size: 30, t0: 7.6 });
+      text(ctx, '客戶版不使用技術名詞，{閱讀時不需要數位鑑識背景。}', 130, 985, t, { size: 30, t0: 3.9, cps: 50 });
     });
 
   section('05', ['工具的', '品質控管'], '第五部分：工具的品質控管，以及初篩報告可以、不可以用來做什麼。');
 
   // ------------------------------------------------------------------ quality
   const ql = [['lock', '不修改證物', ['對證物只做唯讀查詢，', '只寫出報告與紀錄檔。']], ['repeat', '結果可重現', ['同一份證物重新執行，', '除耗時欄位外輸出相同。']], ['shield-check', '逐版驗證', ['每一版附驗證紀錄，', '列明已驗證與', '尚未驗證的項目。']], ['bot', 'AI 協助開發', ['腳本以 AI 協助開發，', '並於離線環境執行。']]];
-  S('quality', '工具的品質控管', 9,
+  S('quality', '工具的品質控管', 4.8,
     '最後說明工具的品質控管。不修改證物：對證物只做唯讀查詢，只寫出報告與紀錄檔。結果可重現：同一份證物重新執行，除了記錄耗時的欄位之外，輸出相同。逐版驗證：每一個版本都附驗證紀錄，列明已驗證與尚未驗證的項目。AI 協助開發：腳本以 AI 協助開發，並於離線環境執行。兩份報告的開頭都標示「初步摘要（未經分析師覆核）」。（口述備忘：可在此說明這份簡報是由 AI 依公司模板製作的；下一頁是重點回顧。）',
     (ctx, t) => {
       bg(ctx, t); head(ctx, t, 'QUALITY CONTROL', '工具的品質控管');
       ql.forEach((q, i) => {
-        const x = 130 + i * 425, t0 = 1.0 + i * 1.2, a = prog(t, t0, t0 + 0.5);
-        G(ctx, 'q' + i, { t0, effect: 'fade', dur: 0.6 }, c => { ring(c, x + 62, 400, 62, { color: C.ey, lw: 2.5, alpha: a, glow: 18, a0: -Math.PI / 2, a1: -Math.PI / 2 + TAU * eo(prog(t, t0, t0 + 0.9)) }); icon(c, q[0], x + 26, 364, 72, { alpha: a }); });
-        text(ctx, q[1], x, 560, t, { size: 46, weight: 700, t0: t0 + 0.3 });
-        q[2].forEach((ln, k) => text(ctx, ln, x, 630 + k * 44, t, { size: 28, color: C.soft, t0: t0 + 0.6 + k * 0.25, cps: 50 }));
-        if (i) G(ctx, 'sep' + i, { t0: t0 - 0.3, effect: 'wipedown', dur: 0.8 }, c => seg(c, x - 40, 340, x - 40, lerp(340, 760, eo(prog(t, t0 - 0.3, t0 + 0.6))), { color: C.faint }));
+        const x = 130 + i * 425, t0 = 0.8 + i * 0.45, a = prog(t, t0, t0 + 0.4);
+        G(ctx, 'q' + i, { t0, effect: 'fade', dur: 0.4 }, c => { ring(c, x + 62, 400, 62, { color: C.ey, lw: 2.5, alpha: a, glow: 18, a0: -Math.PI / 2, a1: -Math.PI / 2 + TAU * eo(prog(t, t0, t0 + 0.6)) }); icon(c, q[0], x + 26, 364, 72, { alpha: a }); });
+        text(ctx, q[1], x, 560, t, { size: 46, weight: 700, t0: t0 + 0.15, cps: 50 });
+        q[2].forEach((ln, k) => text(ctx, ln, x, 630 + k * 44, t, { size: 28, color: C.soft, t0: t0 + 0.3 + k * 0.1, cps: 100 }));
+        if (i) G(ctx, 'sep' + i, { t0: t0 - 0.2, effect: 'wipedown', dur: 0.5 }, c => seg(c, x - 40, 340, x - 40, lerp(340, 760, eo(prog(t, t0 - 0.2, t0 + 0.3))), { color: C.faint }));
       });
-      text(ctx, '兩份報告的開頭都標示「初步摘要（未經分析師覆核）」。', 130, 985, t, { size: 28, color: C.soft, t0: 6.6 });
+      text(ctx, '兩份報告的開頭都標示「初步摘要（未經分析師覆核）」。', 130, 985, t, { size: 28, color: C.soft, t0: 3.2, cps: 50 });
     });
 })();
 
@@ -1963,7 +1975,7 @@ window.FT_PLATES = {};
       hover: (x, y) => { hR = T.R.findIndex(b => inBox(b, x, y)); hL = hR >= 0 ? -1 : T.L.findIndex(b => inBox(b, x, y)); hC = T.chips().findIndex(b => inBox(b, x, y)); return ''; },
       enter: () => { hR = hL = hC = -1; ez.reset(); },
     });
-    s.notes += '（HTML 版：動畫播完後，滑鼠移到右邊任一列，左邊會標出它來自哪個欄位；移到左邊的欄位，右邊會標出它變成的寫法。移到下方任一類別，會顯示對應的系統紀錄名稱。）';
+    s.notes += '（HTML 版：動畫播完後，滑鼠移到右邊任一列，左邊會標出它來自哪個欄位；移到左邊的欄位，右邊會標出它變成的寫法。下方六個類別會自動依序顯示一次對應的系統紀錄名稱；之後滑鼠移到任一類別，也會顯示。）';
   })();
 })();
 
