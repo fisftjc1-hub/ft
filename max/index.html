@@ -1561,12 +1561,12 @@ window.FT_PLATES = {};
       const n = o.order.indexOf(i), tOn = o.first + n * o.step, on = prog(t, tOn, tOn + 0.35);
       const r = o.red.indexOf(i), red = r < 0 ? 0 : prog(t, o.redAt + r * o.redGap, o.redAt + r * o.redGap + 0.5);
       const dim = pick >= 0 && i !== pick ? 1 - 0.72 * F : 1;
-      for (const [pts, kind, bias] of PARTS) {
-        const w = pts.map(p => place(p, ox, oy));
+      for (let pi = 0; pi < PARTS.length; pi++) {
+        const [pts, kind, bias] = PARTS[pi], w = pts.map(p => place(p, ox, oy));
         const nrm = norm(cross(sub(w[1], w[0]), sub(w[3], w[0]))), mid = mul(add(add(w[0], w[1]), add(w[2], w[3])), 0.25);
         if (dot(nrm, sub(cam.pos, mid)) <= 0) continue;                       // facing away
         const q = w.map(cam.project), depth = Math.hypot(...sub(mid, cam.pos)) - bias;
-        const f = { q, kind, depth, shade: 0.34 + 0.72 * Math.max(0, dot(nrm, LIGHT)), on, red, w, dim, i };
+        const f = { q, kind, depth, shade: 0.34 + 0.72 * Math.max(0, dot(nrm, LIGHT)), on, red, w, dim, i, pi };
         faces.push(f); if (kind === 'screen' && on > 0) lit.push(f);
         if (kind === 'screen' && red >= 1) {                                    // can be clicked once it has turned red
           const xs = q.map(p => p[0]), ys = q.map(p => p[1]), foot = cam.project([ox, oy - 0.4, 0]);
@@ -1593,6 +1593,26 @@ window.FT_PLATES = {};
     ctx.globalCompositeOperation = 'source-over';
     for (const f of faces) {
       const q = f.q; ctx.globalAlpha = appear * f.dim;
+      if (FINE && f.kind !== 'screen') {
+        // (v0.5) a machine of aluminium: every metal face is lighter towards its far edge, the edge that faces the
+        // light is a thin bright line, the keys are keys, the touch pad is a plate of its own
+        const mid = (a, b) => [(q[a][0] + q[b][0]) / 2, (q[a][1] + q[b][1]) / 2], g01 = mid(0, 1), g23 = mid(2, 3);
+        poly(ctx, q);
+        if (f.kind === 'deck' || f.kind === 'back' || f.kind === 'side') {
+          const g = ctx.createLinearGradient(g01[0], g01[1], g23[0], g23[1]), s0 = f.shade * (f.kind === 'side' ? 0.62 : 0.8), s1 = f.shade * (f.kind === 'side' ? 0.74 : 1.2), col = s => `rgb(${Math.min(255, 164 * s) | 0},${Math.min(255, 168 * s) | 0},${Math.min(255, 182 * s) | 0})`;
+          g.addColorStop(0, col(s0)); g.addColorStop(1, col(s1)); ctx.fillStyle = g; ctx.fill();
+          if (f.kind !== 'side') { const [a, b] = f.kind === 'deck' ? [0, 1] : [2, 3]; ctx.strokeStyle = 'rgba(255,255,255,0.42)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(q[a][0], q[a][1]); ctx.lineTo(q[b][0], q[b][1]); ctx.stroke(); }
+        } else if (f.kind === 'keys' && f.pi === 5) {
+          const s = f.shade * 0.9; ctx.fillStyle = `rgb(${132 * s | 0},${136 * s | 0},${150 * s | 0})`; ctx.fill(); ctx.strokeStyle = 'rgba(20,21,28,0.55)'; ctx.lineWidth = 1; ctx.stroke();
+        } else if (f.kind === 'keys') {
+          ctx.fillStyle = '#0a0b10'; ctx.fill();
+          ctx.save(); ctx.transform(q[1][0] - q[0][0], q[1][1] - q[0][1], q[3][0] - q[0][0], q[3][1] - q[0][1], q[0][0], q[0][1]);
+          ctx.fillStyle = `rgba(74,77,90,${0.95 * f.shade})`;
+          for (let r = 0; r < 4; r++) for (let c = 0; c < 12; c++) ctx.fillRect(0.022 + c * 0.0805, 0.07 + r * 0.228, 0.064, 0.165);
+          ctx.restore();
+        } else { ctx.fillStyle = '#0c0d12'; ctx.fill(); }
+        continue;
+      }
       if (f.kind !== 'screen') {
         const b = BODY[f.kind]; poly(ctx, q); ctx.fillStyle = `rgb(${b[0] * f.shade | 0},${b[1] * f.shade | 0},${b[2] * f.shade | 0})`; ctx.fill();
         if (f.kind === 'deck' || f.kind === 'back') { ctx.strokeStyle = 'rgba(255,255,255,0.10)'; ctx.lineWidth = 1; ctx.stroke(); }
@@ -1600,11 +1620,16 @@ window.FT_PLATES = {};
       }
       // the screen: dark glass, or a page of the report in yellow (red for a flagged one)
       poly(ctx, q); ctx.fillStyle = '#07080d'; ctx.fill();
+      if (FINE && f.on < 1) {                         // glass that is dark still reflects the room: a soft band across it
+        const g = ctx.createLinearGradient(q[3][0], q[3][1], q[1][0], q[1][1]); g.addColorStop(0, 'rgba(150,160,190,0.16)'); g.addColorStop(0.42, 'rgba(150,160,190,0.03)'); g.addColorStop(0.5, 'rgba(150,160,190,0.09)'); g.addColorStop(1, 'rgba(150,160,190,0)');
+        ctx.save(); ctx.globalAlpha = appear * f.dim * (1 - f.on); poly(ctx, q); ctx.fillStyle = g; ctx.fill(); ctx.restore();
+      }
       if (f.on <= 0) continue;
       const c = f.red > 0 ? mix3(YEL, RED, f.red) : YEL;
       const flash = 1 - prog(f.on, 0, 0.5), rgb = `rgb(${lerp(c[0], 255, flash) | 0},${lerp(c[1], 255, flash) | 0},${lerp(c[2], 255, flash) | 0})`;
       ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.shadowColor = `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},0.9)`; ctx.shadowBlur = (FINE ? 12 + 22 * f.red : 46) * S * f.on; poly(ctx, q); ctx.fillStyle = `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${(FINE ? 0.05 + 0.2 * f.red : 0.35) * f.on * f.dim})`; ctx.fill(); ctx.restore();
       ctx.save(); ctx.globalAlpha = appear * f.dim * Math.min(1, f.on * 2.5); poly(ctx, q); ctx.fillStyle = rgb; ctx.fill();
+      if (FINE) { const g = ctx.createLinearGradient((q[0][0] + q[1][0]) / 2, (q[0][1] + q[1][1]) / 2, (q[2][0] + q[3][0]) / 2, (q[2][1] + q[3][1]) / 2); g.addColorStop(0, 'rgba(0,0,0,0.22)'); g.addColorStop(0.6, 'rgba(0,0,0,0.04)'); g.addColorStop(1, 'rgba(255,255,255,0.10)'); ctx.fillStyle = g; ctx.fill(); }
       // the lines of the report, drawn in the plane of the screen
       ctx.transform(q[1][0] - q[0][0], q[1][1] - q[0][1], q[3][0] - q[0][0], q[3][1] - q[0][1], q[0][0], q[0][1]);
       ctx.fillStyle = FINE && f.red <= 0 ? `rgba(96,98,108,${0.75 * prog(f.on, 0.4, 1)})` : `rgba(${c[0] * 0.42 | 0},${c[1] * 0.42 | 0},${c[2] * 0.3 | 0},${0.9 * prog(f.on, 0.4, 1)})`;
@@ -2152,7 +2177,11 @@ window.FT_PLATES = {};
         cyl.push(0, 0, .5, 0, 0, 1, c0, s0, .5, 0, 0, 1, c1, s1, .5, 0, 0, 1, 0, 0, -.5, 0, 0, -1, c1, s1, -.5, 0, 0, -1, c0, s0, -.5, 0, 0, -1);
       }
     }
-    const meshes = { cube: buffer(cube, [['aPos', 3], ['aNor', 3]]), cyl: buffer(cyl, [['aPos', 3], ['aNor', 3]]) };
+    const sph = []; {                        // radius 0.5
+      const NA = 32, NB = 18, pt = (i, j) => { const th = i / NA * Math.PI * 2, ph = j / NB * Math.PI; return [Math.sin(ph) * Math.cos(th), Math.cos(ph), Math.sin(ph) * Math.sin(th)]; };
+      for (let i = 0; i < NA; i++) for (let j = 0; j < NB; j++) for (const [a, b] of [[0, 0], [1, 0], [1, 1], [0, 0], [1, 1], [0, 1]]) { const q = pt(i + a, j + b); sph.push(q[0] / 2, q[1] / 2, q[2] / 2, q[0], q[1], q[2]); }
+    }
+    const meshes = { cube: buffer(cube, [['aPos', 3], ['aNor', 3]]), cyl: buffer(cyl, [['aPos', 3], ['aNor', 3]]), sphere: buffer(sph, [['aPos', 3], ['aNor', 3]]) };
     const quad = buffer([-1, -1, 0, 0, 1, -1, 1, 0, 1, 1, 1, 1, -1, -1, 0, 0, 1, 1, 1, 1, -1, 1, 0, 1], [['aPos', 2], ['aUv', 2]]);
 
     // ---- programs
@@ -2168,15 +2197,54 @@ window.FT_PLATES = {};
       vec3 flow(vec3 p, float t){ return vec3(sin(p.y * 1.3 + t) + sin(p.z * 0.7 - t * 0.6), sin(p.z * 1.1 + t * 0.8) + sin(p.x * 0.9 + t * 0.5), sin(p.x * 1.2 - t * 0.7) + sin(p.y * 0.8 + t * 0.4)); }`;
 
     // objects: lit, with a reflection of the sky at grazing angles, a highlight, and light of their own above 1
-    P.mesh = program(`attribute vec3 aPos; attribute vec3 aNor; uniform mat4 uVP, uM; varying vec3 vN, vW;
-      void main(){ vec4 w = uM * vec4(aPos, 1.0); vW = w.xyz; vN = mat3(uM) * aNor; gl_Position = uVP * w; }`,
-      `uniform vec3 uColor, uEmis, uLight, uCam, uSkyA, uSkyB; uniform float uAlpha; varying vec3 vN, vW;
-      void main(){ vec3 n = normalize(vN), v = normalize(uCam - vW); float d = max(dot(n, uLight), 0.0);
-        float fr = pow(1.0 - max(dot(n, v), 0.0), 4.0); vec3 r = reflect(-v, n); vec3 env = mix(uSkyA, uSkyB, 0.5 + 0.5 * r.y);
-        float lum = 0.25 + dot(uColor, vec3(0.33)); float sp = pow(max(dot(normalize(uLight + v), n), 0.0), 40.0);
-        vec3 c = uColor * (0.2 + 0.9 * d) + env * (0.05 + 0.55 * fr) * lum + vec3(1.0, 0.96, 0.9) * sp * 0.4 * lum + uEmis * (0.5 + 0.34 * d);
+    // (v0.5) Every object has a material: uMat = roughness, metal (0 or 1), the radius of its rounded edges (in units of
+    // the world), and whether its flat round faces are a turned surface (1: a platter, 2: an optical disc).
+    //   - edges: a box or a cylinder is drawn with its edges rounded: near an edge the normal turns towards the face
+    //     next to it, so the edge catches the light as a thin bright line (the outline itself stays sharp);
+    //   - light: a key light, and two lamps that are seen only as reflections: a large soft one above and in front
+    //     of every object and a cooler one behind it. They are near, so a flat face reflects them unevenly;
+    //   - metal reflects in its own colour and has no colour of its own; a turned surface stretches the reflections
+    //     into the bright wedges of a disc, and an optical disc splits them into colours;
+    //   - the colour field of the page (uPool, uPoolC) lights the objects from where it lies.
+    P.mesh = program(`#version 300 es
+      in vec3 aPos; in vec3 aNor; uniform mat4 uVP, uM; out vec3 vW, vO, vNo;
+      void main(){ vec4 w = uM * vec4(aPos, 1.0); vW = w.xyz; vO = aPos; vNo = aNor; gl_Position = uVP * w; }`,
+      `uniform vec3 uColor, uEmis, uLight, uCam, uSkyA, uSkyB, uAx, uAy, uAz, uSize, uCen, uBoxD, uRimD, uPool, uPoolC; uniform vec4 uMat; uniform float uAlpha; uniform int uKind;
+      in vec3 vW, vO, vNo; out vec4 o;
+      void main(){
+        vec3 p = vO * uSize, h = 0.5 * uSize, n = vNo, tg = vec3(0.0); float cap = 0.0, rho = 0.0;
+        if (uKind == 0) {
+          vec3 e = h - abs(p), r = max(min(vec3(uMat.z), 0.6 * h), vec3(1e-5)), k = pow(clamp(1.0 - e / r, 0.0, 1.0), vec3(1.6)) * (1.0 - abs(vNo));
+          n = vNo + sign(p) * k;
+        } else if (uKind == 1) {
+          rho = length(p.xy); vec2 rd = p.xy / max(rho, 1e-5);
+          if (abs(vNo.z) > 0.5) { float r = max(min(uMat.z, 0.6 * h.x), 1e-5), k = pow(clamp(1.0 - (h.x - rho) / r, 0.0, 1.0), 1.6); n = vec3(rd * k, vNo.z); tg = vec3(-rd.y, rd.x, 0.0); cap = 1.0; }
+          else { float r = max(min(uMat.z, 0.6 * h.z), 1e-5), k = pow(clamp(1.0 - (h.z - abs(p.z)) / r, 0.0, 1.0), 1.6); n = vec3(rd, sign(p.z) * k); }
+        } else n = vNo / max(uSize, vec3(1e-5));
+        n = normalize(n);
+        vec3 N = normalize(uAx * n.x + uAy * n.y + uAz * n.z), V = normalize(uCam - vW);
+        float rough = uMat.x, metal = uMat.y, a = max(rough * rough, 0.03), nv = max(dot(N, V), 0.04);
+        vec3 F0 = mix(vec3(0.04), uColor, metal), dc = uColor * (1.0 - metal), R = reflect(-V, N);
+        vec3 L = uLight, H = normalize(L + V); float nl = max(dot(N, L), 0.0), nh = max(dot(N, H), 0.0), vh = max(dot(V, H), 0.0);
+        float dd = nh * nh * (a * a - 1.0) + 1.0, D = a * a / (3.14159 * dd * dd), kg = (rough + 1.0) * (rough + 1.0) / 8.0, Gs = nl / (nl * (1.0 - kg) + kg) / (nv * (1.0 - kg) + kg);
+        vec3 F = F0 + (1.0 - F0) * pow(1.0 - vh, 5.0);
+        float up = smoothstep(-0.9, 0.7, N.y);                                 // less light reaches what faces down
+        vec3 c = dc * (0.10 + 0.13 * up + 0.92 * nl) + F * min(D * Gs * 0.25, 5.0) * 1.2;
+        float s = mix(0.02, 0.8, rough); vec3 toB = normalize(uCen + uBoxD - vW), toR = normalize(uCen + uRimD - vW);
+        vec3 sky = mix(uSkyA, uSkyB, smoothstep(-0.7, 0.9, R.y)), env = mix(vec3(0.035, 0.037, 0.046), vec3(0.36, 0.38, 0.44), smoothstep(-0.55, 0.95, R.y)) + 0.22 * sky;
+        env += vec3(1.0, 0.97, 0.93) * smoothstep(1.0 - 1.8 * s - 0.03, 1.0 - 0.3 * s, dot(R, toB)) * mix(3.2, 0.45, rough);
+        env += vec3(0.72, 0.82, 1.0) * smoothstep(1.0 - 1.5 * s - 0.02, 1.0 - 0.25 * s, dot(R, toR)) * mix(1.7, 0.25, rough);
+        vec3 Fe = F0 + (max(vec3(1.0 - rough), F0) - F0) * pow(1.0 - nv, 5.0);
+        c += env * Fe * (0.55 + 0.45 * up);
+        vec3 Lp = normalize(uPool - vW); c += uPoolC * (dc * (0.08 + 0.92 * max(dot(N, Lp), 0.0)) + Fe * pow(max(dot(R, Lp), 0.0), mix(48.0, 3.0, rough)) * 1.2);
+        if (uMat.w > 0.5 && cap > 0.5) {
+          vec3 T = normalize(uAx * tg.x + uAy * tg.y), Hb = normalize(toB + V); float t1 = dot(T, H), t2 = dot(T, Hb), a1 = sqrt(max(1.0 - t1 * t1, 0.0)), a2 = sqrt(max(1.0 - t2 * t2, 0.0)), q = rho / max(h.x, 1e-5);
+          vec3 hue = uMat.w > 1.5 ? 0.55 + 0.45 * cos(6.2832 * (t2 * 1.6 + q * 0.9 + 0.05 * sin(2.0 * atan(p.y, p.x)) + vec3(0.0, 0.33, 0.67))) : vec3(1.0);
+          c += F0 * hue * (pow(a1, 160.0) * 1.2 + pow(a2, 70.0) * 1.4) + (uMat.w > 1.5 ? hue * 0.14 * pow(a2, 5.0) : vec3(0.0));
+        }
+        c += uEmis * (0.5 + 0.34 * nl);
         float m = max(c.r, max(c.g, c.b)); c *= 1.24 / (1.0 + 0.46 * m);
-        gl_FragColor = vec4(c * uAlpha, uAlpha); }`);
+        o = vec4(c * uAlpha, uAlpha); }`);
     P.tex = program(`attribute vec2 aPos; attribute vec2 aUv; uniform mat4 uVP, uM; uniform float uFlip; varying vec2 vUv;
       void main(){ vUv = vec2(aUv.x, mix(aUv.y, 1.0 - aUv.y, uFlip)); gl_Position = uVP * uM * vec4(aPos, 0.0, 1.0); }`,
       `uniform sampler2D uTex; uniform float uAlpha; uniform vec3 uTint; varying vec2 vUv;
@@ -2389,6 +2457,7 @@ window.FT_PLATES = {};
   W.flyFor = () => W.fly;
   W.fadeDur = sec => (sec ? 1.15 : 0.9);          // how long a page takes to give way to the next
   let mouse = [0, 0], sway = [0, 0], t0 = performance.now();
+  const MAT0 = [0.5, 0, 0.022, 0];          // the material of an object that names none: roughness, metal, rounding of its edges, turned surface
   const hud = () => document.getElementById('hud').getBoundingClientRect();
   W.box = hud;
 
@@ -2582,14 +2651,25 @@ window.FT_PLATES = {};
 
     // the objects of this slide, and of the one we are leaving
     const items = [];
-    const collect = (n, t, a, M) => { const sc = slides[n]; if (!sc.set3d || a <= 0) return; for (const it of sc.set3d(t)) items.push({ mesh: it.mesh || 'cube', M: m4.mul(M, it.M), color: it.color, emis: it.emis || [0, 0, 0], alpha: a }); };
+    const collect = (n, t, a, M) => { const sc = slides[n]; if (!sc.set3d || a <= 0) return; for (const it of sc.set3d(t)) items.push({ mesh: it.mesh || 'cube', M: m4.mul(M, it.M), color: it.color, emis: it.emis || [0, 0, 0], alpha: a, mat: it.mat || MAT0 }); };
     collect(o.i, o.t, inCur, curM); if (tr) collect(tr.i, slides[tr.i].dur + 1, inPrev, prevM);
     gl.enable(gl.DEPTH_TEST); gl.depthMask(true);
     {
       const P = G.P.mesh; gl.useProgram(P.p); gl.uniformMatrix4fv(P.u.uVP, false, VP); gl.uniform3fv(P.u.uLight, LIGHT); gl.uniform3fv(P.u.uCam, eye);
       gl.uniform3fv(P.u.uSkyA, V.mul(c2, 0.9)); gl.uniform3fv(P.u.uSkyB, V.add(V.mul(c1, 1.1), [0.10, 0.10, 0.12]));
+      // the two lamps that are only seen as reflections stand at the same place beside every object; the colour field
+      // of the page lights the objects from where it lies
+      gl.uniform3fv(P.u.uBoxD, V.mul(V.norm(V.add(V.mul(S.n, 0.95), V.add(V.mul(S.r, -0.5), [0, 1.0, 0]))), 1.7));
+      gl.uniform3fv(P.u.uRimD, V.mul(V.norm(V.add(V.mul(S.n, -0.55), V.add(V.mul(S.r, 0.95), [0, 0.45, 0]))), 2.2));
+      if (lightAt) { const a = Math.min(1, lightAt.a / 0.62) * (lightAt.soft > 0.5 ? 0.5 : 0.3); gl.uniform3fv(P.u.uPool, m4.point(S.M, [lightAt.x * 0.8, lightAt.y * 0.8, 1.5])); gl.uniform3fv(P.u.uPoolC, V.mul([1.0, 0.74, 0.42], a * 0.3)); }
+      else { gl.uniform3f(P.u.uPool, 0, 0, 0); gl.uniform3f(P.u.uPoolC, 0, 0, 0); }
+      let lastMesh = null;
       for (const it of items) {
-        G.use(P, G.meshes[it.mesh]); gl.uniformMatrix4fv(P.u.uM, false, it.M); gl.uniform3fv(P.u.uColor, it.color); gl.uniform3fv(P.u.uEmis, it.emis); gl.uniform1f(P.u.uAlpha, it.alpha);
+        const M = it.M, sx = Math.hypot(M[0], M[1], M[2]) || 1, sy = Math.hypot(M[4], M[5], M[6]) || 1, sz = Math.hypot(M[8], M[9], M[10]) || 1;
+        if (it.mesh !== lastMesh) { G.use(P, G.meshes[it.mesh]); lastMesh = it.mesh; gl.uniform1i(P.u.uKind, it.mesh === 'cube' ? 0 : it.mesh === 'cyl' ? 1 : 2); }
+        gl.uniformMatrix4fv(P.u.uM, false, M); gl.uniform3fv(P.u.uColor, it.color); gl.uniform3fv(P.u.uEmis, it.emis); gl.uniform1f(P.u.uAlpha, it.alpha);
+        gl.uniform3f(P.u.uAx, M[0] / sx, M[1] / sx, M[2] / sx); gl.uniform3f(P.u.uAy, M[4] / sy, M[5] / sy, M[6] / sy); gl.uniform3f(P.u.uAz, M[8] / sz, M[9] / sz, M[10] / sz);
+        gl.uniform3f(P.u.uSize, sx, sy, sz); gl.uniform3f(P.u.uCen, M[12], M[13], M[14]); gl.uniform4fv(P.u.uMat, it.mat);
         gl.drawArrays(gl.TRIANGLES, 0, G.meshes[it.mesh].count);
       }
     }
@@ -2681,6 +2761,90 @@ window.FT_PLATES = {};
   // would slide away from the middle of the page, off the 2D marks drawn for that place (the frame under the mouse).
   const fwd = (x, y, z) => { const q = 1 - z / DIST; return m4.trs(X(x) * q, Y(y) * q, z); };
 
+  // =================================================================== finer objects (the "max" edition, v0.5)
+  // In that edition every object has a material (glx.js: roughness, metal, the rounding of its edges, turned
+  // surface), and the things the slides show are built from the parts that make them recognisable: a drive has a
+  // case, a platter that reflects like one, a spindle, an arm and screws; a report has a heading and lines, and the
+  // analyst's has a table as well. c: { lit: 0..1 how far the thing is lit, glow: v => the light of its lamps,
+  // spin: an angle, body / emis: a colour and a light of its own }. The other editions ignore all of this.
+  const mt = (mat, it) => { it.mat = mat; return it; }, zero = () => [0, 0, 0], HALF_PI = Math.PI / 2;
+  const MT = { alu: [0.34, 1, 0.03, 0], steel: [0.2, 1, 0.012, 0], dark: [0.42, 1, 0.016, 0], platter: [0.13, 1, 0.006, 1], disc: [0.15, 1, 0.004, 2], plastic: [0.36, 0, 0.026, 0],
+    gloss: [0.2, 0, 0.026, 0], paper: [0.82, 0, 0.012, 0], matte: [0.72, 0, 0.02, 0], puff: [0.8, 0, 0, 0], glass: [0.07, 0, 0.008, 0], slab: [0.6, 0, 0.04, 0] };
+  const ALU = [0.80, 0.81, 0.85], STEEL = [0.90, 0.91, 0.94], INK = [0.035, 0.037, 0.05];
+  const dim = (col, lit) => mul(col, 0.22 + 0.78 * lit);
+  const zcyl = (pre, x, y, z, d, h, color, emis, rot) => ({ mesh: 'cyl', M: m4.chain(pre, m4.trs(x, y, z), rot || ID, m4.scl(d, d, h)), color, emis: emis || [0, 0, 0] });
+  const ball = (pre, x, y, z, sx, sy, sz, color, emis) => ({ mesh: 'sphere', M: m4.chain(pre, m4.trs(x, y, z), m4.scl(sx, sy, sz)), color, emis: emis || [0, 0, 0] });
+  const K = {};
+  // a hard drive, open: the case, the platter on its spindle, the arm, four screws, the connector
+  K.drive = (out, B, c) => {
+    const lit = c.lit == null ? 1 : c.lit, glow = c.glow || zero, body = c.body || dim(ALU, lit), e = c.emis || [0, 0, 0], z = 0.07, own = !!c.body;
+    out.push(mt(MT.alu, box(0, 0, 0, 0.62, 0.8, 0.14, body, e, B)));
+    out.push(mt(MT.dark, box(0, 0.015, z + 0.001, 0.54, 0.7, 0.006, mul(body, 0.3), mul(e, 0.3), B)));
+    out.push(mt(MT.platter, zcyl(m4.chain(B, m4.trs(0, 0.1, z + 0.016), m4.rotZ(c.spin || 0)), 0, 0, 0, 0.5, 0.016, own ? mix(dim(STEEL, lit), body, 0.55) : dim(STEEL, lit), mul(e, 0.5))));
+    out.push(mt(MT.steel, zcyl(B, 0, 0.1, z + 0.034, 0.16, 0.03, own ? mix(dim([0.62, 0.63, 0.68], lit), body, 0.4) : dim([0.62, 0.63, 0.68], lit), mul(e, 0.4))));
+    out.push(mt(MT.gloss, zcyl(B, 0, 0.1, z + 0.052, 0.065, 0.01, INK, glow(0.6))));
+    const A = m4.chain(B, m4.trs(0.21, -0.27, z + 0.03), m4.rotZ(0.38));
+    out.push(mt(MT.steel, zcyl(A, 0, 0, 0, 0.12, 0.034, dim([0.7, 0.71, 0.76], lit), mul(e, 0.4))));
+    out.push(mt(MT.dark, box(0, 0.17, 0.004, 0.05, 0.34, 0.014, dim([0.5, 0.51, 0.56], lit), mul(e, 0.3), A)));
+    out.push(mt(MT.gloss, box(0, 0.345, 0, 0.03, 0.04, 0.012, INK, glow(0.5), A)));
+    for (const [sx, sy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) out.push(mt(MT.steel, zcyl(B, sx * 0.265, sy * 0.355, z + 0.002, 0.036, 0.008, dim([0.55, 0.56, 0.6], lit))));
+    out.push(mt(MT.plastic, box(0, -0.405, -0.02, 0.34, 0.02, 0.06, INK, null, B)));
+  };
+  // a USB stick: the body, the metal plug with its two openings, the lamp
+  K.usb = (out, B0, c) => {
+    const lit = c.lit == null ? 1 : c.lit, glow = c.glow || zero, B = m4.chain(B0, m4.rotZ(-0.6)), cap = dim([0.15, 0.16, 0.2], lit);
+    out.push(mt(MT.gloss, box(0, -0.13, 0, 0.27, 0.48, 0.11, dim([0.86, 0.87, 0.9], lit), null, B)));
+    out.push(mt(MT.plastic, box(0, -0.385, 0, 0.276, 0.05, 0.116, cap, null, B))); out.push(mt(MT.plastic, box(0, 0.118, 0, 0.276, 0.022, 0.116, cap, null, B)));
+    out.push(mt(MT.steel, box(0, 0.235, 0, 0.2, 0.22, 0.072, dim(STEEL, lit), null, B)));
+    for (const s of [-1, 1]) out.push(mt(MT.matte, box(s * 0.048, 0.265, 0.0365, 0.044, 0.05, 0.004, INK, null, B)));
+    out.push(mt(MT.gloss, zcyl(B, 0, -0.24, 0.056, 0.05, 0.006, INK, glow(1))));
+  };
+  // an optical disc: the recording surface (it splits the light into colours), the clear ring, the hole
+  K.disc = (out, B0, c) => {
+    const lit = c.lit == null ? 1 : c.lit, glow = c.glow || zero, B = m4.chain(B0, m4.rotZ(c.spin || 0));
+    out.push(mt(MT.disc, zcyl(B, 0, 0, 0, 0.82, 0.012, dim([0.84, 0.86, 0.93], lit))));
+    out.push(mt(MT.gloss, zcyl(B, 0, 0, 0.002, 0.3, 0.013, dim([0.3, 0.31, 0.37], lit))));
+    out.push(mt(MT.steel, zcyl(B, 0, 0, 0.003, 0.19, 0.014, dim([0.62, 0.63, 0.68], lit))));
+    out.push(mt(MT.matte, zcyl(B, 0, 0, 0.004, 0.1, 0.015, INK)));
+  };
+  // a cloud: round, soft, matte
+  K.cloud = (out, B, c) => {
+    const lit = c.lit == null ? 1 : c.lit, glow = c.glow || zero, col = mix(dim([0.8, 0.82, 0.88], lit), [0.93, 0.94, 0.97], lit), e = mul([0.05, 0.052, 0.06], lit);
+    for (const [x, y, z, sx, sy, sz] of [[-0.22, -0.04, 0, 0.4, 0.4, 0.3], [0.03, 0.09, 0, 0.54, 0.54, 0.34], [0.27, -0.03, 0, 0.38, 0.38, 0.3], [0.12, -0.03, 0.03, 0.4, 0.34, 0.3], [0.02, -0.14, 0, 0.64, 0.2, 0.3], [-0.2, -0.13, 0, 0.24, 0.22, 0.28], [0.25, -0.13, 0, 0.22, 0.2, 0.28]])
+      out.push(mt(MT.puff, ball(B, x, y, z, sx, sy, sz, col, e)));
+  };
+  // a file server: three units, on each a front plate, a lamp and the slots of its drives
+  K.server = (out, B0, c, time) => {
+    const lit = c.lit == null ? 1 : c.lit, glow = c.glow || zero, B = m4.chain(B0, m4.trs(0, 0.08, 0), m4.scl(0.86, 0.86, 0.86));
+    [-0.25, 0, 0.25].forEach((yy, n) => {
+      out.push(mt([0.4, 0.45, 0.02, 0], box(0, yy, 0, 0.68, 0.2, 0.5, dim([0.62, 0.64, 0.71], lit), null, B)));
+      out.push(mt(MT.gloss, box(0, yy, 0.251, 0.64, 0.15, 0.006, dim([0.07, 0.074, 0.095], lit), null, B)));
+      out.push(mt(MT.gloss, zcyl(B, -0.25, yy, 0.256, 0.042, 0.008, INK, glow(0.7 + 0.3 * Math.sin(time * 3 + n * 2)))));
+      for (let q = 0; q < 5; q++) out.push(mt(MT.steel, box(-0.04 + q * 0.068, yy, 0.256, 0.014, 0.09, 0.005, dim([0.42, 0.43, 0.48], lit), null, B)));
+    });
+  };
+  // a recycle bin: a can of brushed metal with two bands, a lid and its knob
+  K.bin = (out, B, c) => {
+    const lit = c.lit == null ? 1 : c.lit, glow = c.glow || zero, up = m4.rotX(HALF_PI);
+    out.push(mt([0.42, 0.4, 0.02, 0], zcyl(B, 0, -0.06, 0, 0.5, 0.62, dim([0.7, 0.71, 0.77], lit), null, up)));
+    for (const y of [-0.2, 0.06]) out.push(mt([0.4, 0.5, 0.01, 0], zcyl(B, 0, y, 0, 0.512, 0.022, dim([0.4, 0.41, 0.47], lit), null, up)));
+    out.push(mt(MT.steel, zcyl(B, 0, 0.275, 0, 0.58, 0.05, dim([0.78, 0.79, 0.84], lit), null, up)));
+    out.push(mt(MT.steel, zcyl(B, 0, 0.325, 0, 0.13, 0.05, dim([0.5, 0.51, 0.56], lit), glow(0.25), up)));
+  };
+  // a report: a sheet with another behind it, a heading and lines of text. dense: the analyst's version, which
+  // also has a table (its sources and technical detail); the client's version has few, larger lines.
+  K.sheet = (out, S, w, h, o) => {
+    const k = o.k == null ? 1 : o.k, ie = o.inkEmis || [0, 0, 0], e = mul(o.emis || [0, 0, 0], 0.5); if (k <= 0) return;
+    out.push(mt(MT.paper, box(w * 0.055, -h * 0.04, -0.035, w * k, h * k, 0.012, mul(o.color, 0.5), mul(e, 0.3), S)));
+    out.push(mt(MT.paper, box(0, 0, 0, w * k, h * k, 0.02, o.color, e, S)));
+    const L = (x, y, ww, hh, col) => out.push(mt(MT.matte, box(x * w * k, y * h * k, 0.0115, ww * w * k, hh * h * k, 0.004, col || o.ink, ie, S)));
+    L(-0.2, 0.36, 0.4, 0.058);
+    if (o.dense) { for (let n = 0; n < 4; n++) L(n === 3 ? -0.14 : 0, 0.23 - n * 0.072, n === 3 ? 0.52 : 0.8, 0.02); for (let r = 0; r < 4; r++) for (let q = 0; q < 3; q++) L(-0.27 + q * 0.27, -0.12 - r * 0.078, 0.24, 0.034, r ? null : mix(o.ink, o.color, 0.35)); }
+    else for (let n = 0; n < 4; n++) L(n === 3 ? -0.16 : 0, 0.17 - n * 0.145, n === 3 ? 0.48 : 0.8, 0.036);
+  };
+  // every object of a slide that has no material yet gets the one named for its tag (or the first of the list)
+  const dress = (out, rules) => { if (FINE) for (const it of out) if (!it.mat) { const r = rules.find(([p]) => p == null || (it.tag && it.tag.startsWith(p))); if (r) it.mat = r[1]; } return out; };
+
   // ---- manual against the tool: two trays of 100 tiles. A tile that has been examined rises out of its tray.
   //      Manual: one at a time. The tool: a whole column at a time, behind a bar of light.
   scene('compare').set3d = t => {
@@ -2702,7 +2866,7 @@ window.FT_PLATES = {};
         out.push(tagged(box(U(x - cx), 0, 0.3, 0.03, U(4 * 31 + cell + 40), 0.62, [0, 0, 0], mul([1.3, 1.1, 0.25], a), tray), 'scan'));
       }
     }
-    return out;
+    return dress(out, [['tray', MT.matte], ['scan', MT.matte], [null, [0.24, 0, 0.02, 0]]]);
   };
 
   // ---- records per day: three bars standing on a plate, turned a little so that they have sides
@@ -2713,9 +2877,17 @@ window.FT_PLATES = {};
     out.push(tagged(box(0, -0.05, 0, U(820) * a0, 0.1, 1.7, [0.07, 0.075, 0.105], null, grp), 'plate'));
     days.forEach((v, i) => {
       const t0 = 1.2 + i * 0.6, du = i === 2 ? 1.6 : 0.9, g = eo(prog(t, t0, t0 + du)), h = U(v * unit * g), hot = i === 2; if (h <= 0.001) return;
+      if (FINE) {
+        const n = v * g, x = U(270 + i * 250 + 65 - 585), th = U(unit), rising = g < 1 ? 1 : 0;
+        for (let j = 0; j < n; j++) {
+          const part = Math.min(1, n - j), fresh = rising * (1 - clamp((n - j - 1) / 5));
+          out.push(tagged(mt([0.3, 0, 0.012, 0], box(x, th * (j + 0.5 * part), 0, U(130), th * 0.78 * part, 0.95, hot ? YEL : [0.36, 0.4, 0.52], hot ? mul([0.5, 0.4, 0.0], 0.3 + 0.9 * fresh) : mul([0.22, 0.25, 0.34], fresh), grp)), 'bar' + i));
+        }
+        return;
+      }
       out.push(tagged(box(U(270 + i * 250 + 65 - 585), h / 2, 0, U(130), h, 0.95, hot ? YEL : [0.3, 0.34, 0.45], hot ? mul([0.62, 0.5, 0.0], 0.55 + 0.45 * g) : [0.035, 0.04, 0.06], grp), 'bar' + i));
     });
-    return out;
+    return dress(out, [['plate', [0.5, 0, 0.03, 0]], [null, [0.3, 0, 0.035, 0]]]);
   };
 
   // ---- how it works: the evidence is a platter that turns; each rule is a cube that lights as the run reaches it;
@@ -2724,7 +2896,10 @@ window.FT_PLATES = {};
   scene('flow').set3d = t => {
     const out = [], y = 540, xa = 260, xd = 1500, CELL = window.FT_RCELL, RULES = window.FT_RULES, UI = window.FT_RULEUI;
     const px = lerp(xa, xd, eio(prog(t, 1.0, 5.2))), a0 = eo(prog(t, 0.6, 1.2));
-    if (a0 > 0) {
+    if (a0 > 0 && FINE) {
+      const s = 1.72 * a0; K.drive(out, m4.chain(back(-0.9), m4.trs(X(xa), Y(y + 6), 0), m4.rotX(-0.72), m4.rotZ(0.3), m4.scl(s, s, s)), { spin: still() ? 0.5 : t * 1.1, glow: v => mul([0.95, 0.76, 0.0], v * (0.4 + 0.6 * prog(t, 1.0, 1.6))) });
+      mark(out, 0, 'disk');
+    } else if (a0 > 0) {
       const D = m4.chain(back(-0.9), m4.trs(X(xa), Y(y), 0), m4.rotX(-1.0), m4.rotZ(still() ? 0.5 : t * 1.1));
       out.push({ mesh: 'cyl', M: m4.chain(D, m4.scl(1.3 * a0, 1.3 * a0, 0.07)), color: [0.4, 0.42, 0.5], emis: [0.03, 0.03, 0.045] });
       out.push({ mesh: 'cyl', M: m4.chain(D, m4.trs(0, 0, 0.05), m4.scl(0.42 * a0, 0.42 * a0, 0.07)), color: [0.78, 0.8, 0.86], emis: [0.08, 0.08, 0.1] });
@@ -2743,13 +2918,14 @@ window.FT_PLATES = {};
     const k2 = eo(prog(t, 5.2, 6.0)), nd = out.length;
     if (k2 > 0) [[-140, [0.2, 0.22, 0.29], [0.05, 0.055, 0.075], [0.7, 0.72, 0.78]], [140, YEL, [0.55, 0.44, 0.0], [0.1, 0.1, 0.13]]].forEach(([dy, color, emis, ink]) => {
       const S = m4.chain(back(-0.9), m4.trs(X(xd + 75), Y(y + dy), 0), m4.rotY(-0.42), m4.rotX(0.06));
+      if (FINE) { K.sheet(out, S, U(150), U(190), { color, emis, ink, inkEmis: dy > 0 ? [0, 0, 0] : [0.3, 0.31, 0.34], dense: dy < 0, k: k2 }); return; }
       out.push(box(0, 0, 0, U(150) * k2, U(190) * k2, 0.07, color, emis, S));
       for (let n = 0; n < 4; n++) out.push(box(n === 3 ? -0.17 : 0, 0.42 - n * 0.25, 0.045, (n === 3 ? 0.5 : 0.84) * k2, 0.035, 0.02, ink, dy > 0 ? [0, 0, 0] : [0.3, 0.31, 0.34], S));
     });
     mark(out, nd, 'docs');
     // while a card is open on the panel, what glows behind it is turned down (its light would shine through the card)
     const sh = UI ? UI.shade() : 0; if (sh > 0) out.forEach(it => { if (!it.keep) { it.emis = mul(it.emis, 1 - 0.9 * sh); it.color = mul(it.color, 1 - 0.55 * sh); } });
-    return out;
+    return dress(out, [['cube', MT.gloss]]);
   };
 
   // ---- where and when: an object for each place of the map. It is dark until a record of that place has been
@@ -2771,37 +2947,42 @@ window.FT_PLATES = {};
       ends[k] = out.length; mark(out, from, k);
     };
     // the file server: three units, a lamp and a slot on each
-    place('srv', 0.36, (B0, c) => [-0.25, 0, 0.25].forEach((yy, n) => {
+    place('srv', 0.36, (B0, c) => FINE ? K.server(out, B0, c, time) : [-0.25, 0, 0.25].forEach((yy, n) => {
       const B = m4.chain(B0, m4.trs(0, 0.08, 0), m4.scl(0.86, 0.86, 0.86));
       out.push(box(0, yy, 0, 0.68, 0.2, 0.5, c.body, c.soft, B));
       out.push(box(-0.23, yy, 0.255, 0.07, 0.07, 0.02, c.dark, c.glow(0.7 + 0.3 * Math.sin(time * 3 + n * 2)), B)); out.push(box(0.1, yy, 0.255, 0.3, 0.03, 0.02, c.dark, c.glow(0.25), B));
     }));
     // the cloud drive site: a cloud cut from a slab
     place('cloud', 0.3, (B, c) => {
+      if (FINE) return K.cloud(out, B, c);
       const col = mix(c.body, [0.86, 0.88, 0.93], c.lit), e = c.glow(0.22);
       out.push(cyl(B, -0.22, -0.04, 0, 0.42, 0.22, col, e)); out.push(cyl(B, 0.03, 0.1, 0, 0.56, 0.22, col, e)); out.push(cyl(B, 0.27, -0.03, 0, 0.4, 0.22, col, e));
       out.push(box(0.02, -0.15, 0, 0.5, 0.2, 0.22, col, e, B));
     });
     // the USB stick: body, plug, lamp
     place('usb', 0.36, (B0, c) => {
+      if (FINE) return K.usb(out, B0, c);
       const B = m4.chain(B0, m4.rotZ(-0.6));
       out.push(box(0, -0.12, 0, 0.3, 0.52, 0.13, c.body, c.soft, B)); out.push(box(0, 0.25, 0, 0.21, 0.22, 0.08, mix(c.body, [0.8, 0.82, 0.88], 0.5), c.soft, B));
       out.push(box(0, -0.22, 0.07, 0.07, 0.07, 0.02, c.dark, c.glow(1), B));
     });
     // the optical disc: it turns once it has a record
     place('cd', -0.75, (B0, c) => {
+      if (FINE) return K.disc(out, B0, { lit: c.lit, glow: c.glow, spin: time * 0.9 * c.lit });
       const B = m4.chain(B0, m4.rotZ(time * 0.9 * c.lit));
       out.push(cyl(B, 0, 0, 0, 0.82, 0.03, mix(c.body, [0.72, 0.75, 0.84], c.lit), c.glow(0.12))); out.push(cyl(B, 0, 0, 0.02, 0.24, 0.03, c.dark, c.glow(0.5)));
       out.push(box(0.27, 0, 0.02, 0.2, 0.035, 0.01, c.dark, c.glow(0.8), B));
     });
     // drive D: a case, a platter, an arm
     place('d', -0.6, (B, c) => {
+      if (FINE) return K.drive(out, B, { lit: c.lit, glow: c.glow, spin: time * 1.4 * c.lit });
       out.push(box(0, 0, 0, 0.6, 0.78, 0.14, c.body, c.soft, B));
       out.push(cyl(m4.chain(B, m4.trs(0, 0.1, 0.08), m4.rotZ(time * 1.4 * c.lit)), 0, 0, 0, 0.46, 0.03, mix(c.body, [0.8, 0.82, 0.88], 0.6), c.glow(0.15))); out.push(cyl(B, 0, 0.1, 0.1, 0.12, 0.03, c.dark, c.glow(0.6)));
       out.push(box(0.17, -0.22, 0.1, 0.06, 0.34, 0.03, c.dark, c.glow(0.5), m4.chain(B, m4.rotZ(0.35))));
     });
     // the recycle bin: an upright can with a rim
     place('bin', 0.3, (B, c) => {
+      if (FINE) return K.bin(out, B, c);
       const up = m4.rotX(HALF);
       out.push(cyl(B, 0, -0.06, 0, 0.5, 0.62, c.body, c.soft, up)); out.push(cyl(B, 0, 0.28, 0, 0.6, 0.06, mix(c.body, [0.8, 0.82, 0.88], 0.4), c.glow(0.35), up));
       out.push(box(0, 0.34, 0, 0.18, 0.05, 0.07, c.dark, c.glow(0.5), B));
@@ -2824,7 +3005,7 @@ window.FT_PLATES = {};
       out.push(tagged(box(0, 0, -0.05, U(w) * a0, U(h) * a0, 0.1, mix([0.05, 0.055, 0.085], [0.09, 0.095, 0.14], k), null, B), 'tile' + i));
       if (k > 0.02) out.push(tagged(box(0, -U(h) / 2 - 0.07, 0, U(w) * k, 0.03, 0.06, [0, 0, 0], mul([1.1, 0.9, 0.1], k), B), 'tile' + i));
     }
-    return out;
+    return dress(out, [[null, MT.slab]]);
   };
   });
 
@@ -2834,17 +3015,18 @@ window.FT_PLATES = {};
   if (pr && window.FT_PROC) pr.set3d = t => {
     const out = [], P = window.FT_PROC, time = clockNow(), GREY = [0.62, 0.64, 0.7], DK = [0.14, 0.15, 0.19];
     const grp = (i, tilt) => { const tn = P.PT[i] - 0.1, k = pop(prog(t, tn, tn + 0.5)); return k > 0 ? m4.chain(back(-0.9), m4.trs(X(P.x0 + i * P.dx + 50), Y(P.py), 0), m4.scl(k, k, k), m4.rotX(tilt), m4.rotY(-0.5 + 0.14 * Math.sin(time * 0.7 + i))) : null; };
-    const drive = (B, body, emis, lamp) => {
+    const drive = (B, body, emis, lamp, own) => {
+      if (FINE) return K.drive(out, B, { body: own ? body : null, emis, lit: own ? 1 : (body[0] > 0.5 ? 1 : 0.5), glow: v => mul(lamp, v * 1.6), spin: own ? time * 1.2 : 0 });
       out.push(box(0, 0, 0, 0.62, 0.8, 0.14, body, emis, B));
       out.push(cyl2(B, 0, 0.1, 0.08, 0.46, 0.03, mix(body, [0.82, 0.84, 0.9], 0.6), [0.03, 0.03, 0.04])); out.push(cyl2(B, 0, 0.1, 0.1, 0.12, 0.03, DK, lamp));
       out.push(box(0.17, -0.22, 0.1, 0.06, 0.34, 0.03, DK, lamp, m4.chain(B, m4.rotZ(0.35))));
     };
     let B, from;
-    if ((B = grp(0, -0.55))) { from = out.length; drive(B, GREY, [0.04, 0.04, 0.05], [0.2, 0.2, 0.24]); out.push(box(0.38, -0.36, 0.1, 0.2, 0.2, 0.07, [0, 0, 0], [0.95, 0.76, 0.0], B)); mark(out, from, 'st0'); }
+    if ((B = grp(0, -0.55))) { from = out.length; drive(B, GREY, [0.04, 0.04, 0.05], [0.2, 0.2, 0.24]); out.push(FINE ? mt(MT.paper, box(-0.13, -0.3, 0.077, 0.22, 0.1, 0.004, YEL, [0.5, 0.4, 0.0], B)) : box(0.38, -0.36, 0.1, 0.2, 0.2, 0.07, [0, 0, 0], [0.95, 0.76, 0.0], B)); mark(out, from, 'st0'); }
     if ((B = grp(1, -0.55))) {                                         // the copy comes out of the original
       from = out.length; const k = eo(prog(t, P.PT[1], P.PT[1] + 0.7)), small = m4.scl(0.8, 0.8, 0.8);
       drive(m4.chain(B, m4.trs(-0.42 * k, 0, 0), small), [0.3, 0.31, 0.36], [0.02, 0.02, 0.03], [0.1, 0.1, 0.12]);
-      drive(m4.chain(B, m4.trs(0.42 * k, 0, 0.03), small), mix([0.3, 0.31, 0.36], YEL, k), mul([0.5, 0.4, 0.0], k), mul([0.9, 0.72, 0.0], k)); mark(out, from, 'st1');
+      drive(m4.chain(B, m4.trs(0.42 * k, 0, 0.03), small), mix(FINE ? [0.42, 0.43, 0.48] : [0.3, 0.31, 0.36], FINE ? [1.0, 0.8, 0.22] : YEL, k), mul(FINE ? [0.2, 0.16, 0.0] : [0.5, 0.4, 0.0], k), mul([0.9, 0.72, 0.0], k), true); mark(out, from, 'st1');
     }
     if ((B = grp(2, 0.45))) {                                          // sheets stack up one at a time
       from = out.length;
@@ -2862,18 +3044,20 @@ window.FT_PLATES = {};
     }
     if ((B = grp(4, 0.06))) {
       from = out.length; const S = m4.chain(B, m4.rotY(0.12));
-      out.push(box(0, 0, 0, 0.82, 1.04, 0.07, YEL, [0.55, 0.44, 0.0], S));
-      for (let n = 0; n < 4; n++) out.push(box(n === 3 ? -0.12 : 0, 0.3 - n * 0.2, 0.045, n === 3 ? 0.36 : 0.6, 0.035, 0.02, [0.1, 0.1, 0.13], [0, 0, 0], S));
+      if (FINE) K.sheet(out, S, 0.82, 1.04, { color: YEL, emis: [0.55, 0.44, 0.0], ink: [0.1, 0.1, 0.13] });
+      else { out.push(box(0, 0, 0, 0.82, 1.04, 0.07, YEL, [0.55, 0.44, 0.0], S));
+      for (let n = 0; n < 4; n++) out.push(box(n === 3 ? -0.12 : 0, 0.3 - n * 0.2, 0.045, n === 3 ? 0.36 : 0.6, 0.035, 0.02, [0.1, 0.1, 0.13], [0, 0, 0], S)); }
       mark(out, from, 'st4');
     }
     const r = pop(prog(t, P.t3, P.t3 + 0.4));
     if (r > 0) {
       from = out.length; const S = m4.chain(back(-0.9), m4.trs(X(P.tx), Y(P.ry), 0), m4.scl(r, r, r), m4.rotY(-0.42 + 0.2 * Math.sin(time * 0.9)), m4.rotX(0.06));
-      out.push(box(0, 0, 0, U(52), U(66), 0.05, YEL, [0.7, 0.56, 0.0], S));
-      for (let n = 0; n < 3; n++) out.push(box(n === 2 ? -0.05 : 0, 0.13 - n * 0.11, 0.035, n === 2 ? 0.17 : 0.27, 0.025, 0.02, [0.1, 0.1, 0.13], [0, 0, 0], S));
+      if (FINE) K.sheet(out, S, U(52), U(66), { color: YEL, emis: [0.7, 0.56, 0.0], ink: [0.1, 0.1, 0.13] });
+      else { out.push(box(0, 0, 0, U(52), U(66), 0.05, YEL, [0.7, 0.56, 0.0], S));
+      for (let n = 0; n < 3; n++) out.push(box(n === 2 ? -0.05 : 0, 0.13 - n * 0.11, 0.035, n === 2 ? 0.17 : 0.27, 0.025, 0.02, [0.1, 0.1, 0.13], [0, 0, 0], S)); }
       mark(out, from, 'tri');
     }
-    return out;
+    return dress(out, [['st2', MT.paper], ['st3', MT.gloss], [null, MT.plastic]]);
   };
 
   // ---- three questions: the computer of the simulated case (the run passes over its screen), a cube for each rule
@@ -2883,12 +3067,30 @@ window.FT_PLATES = {};
     const out = [], Q = window.FT_QS, RULES = window.FT_RULES, time = clockNow(), a0 = eo(prog(t, 0.5, 1.1)); if (a0 <= 0) return out;
     const scan = prog(t, 1.2, 2.3), after = prog(t, 2.2, 2.6);
     const B = m4.chain(back(-1.2), m4.trs(X(Q.LX), Y(Q.LY - 20), 0), m4.scl(0.92 * a0, 0.92 * a0, 0.92 * a0), m4.rotX(0.3), m4.rotY(-0.45 + 0.1 * Math.sin(time * 0.5)));
+    const lid = m4.chain(B, m4.trs(0, -0.6, -0.4), m4.rotX(-0.22));
+    if (FINE) {
+      // a machine of aluminium: the base with its keys and touch pad, the lid, the glass. What the run has passed
+      // stays on the screen as the lines of a report: a heading, lines, and the ones that are marked.
+      out.push(mt(MT.alu, box(0, -0.62, 0.45, 2.5, 0.08, 1.7, dim(ALU, 0.86), null, B)));
+      out.push(mt(MT.matte, box(0, -0.578, 0.26, 2.16, 0.006, 0.84, [0.035, 0.037, 0.05], null, B)));
+      for (let r = 0; r < 4; r++) for (let q = 0; q < 12; q++) out.push(mt(MT.plastic, box(-0.968 + q * 0.176, -0.572, -0.05 + r * 0.205, 0.148, 0.012, 0.172, [0.085, 0.09, 0.115], null, B)));
+      out.push(mt([0.3, 1, 0.012, 0], box(0, -0.578, 0.98, 0.82, 0.006, 0.46, dim(ALU, 0.6), null, B)));
+      out.push(mt(MT.dark, zcyl(B, 0, -0.585, -0.4, 0.085, 2.1, dim(ALU, 0.5), null, m4.rotY(HALF_PI))));
+      out.push(mt(MT.alu, box(0, 0.82, 0, 2.5, 1.64, 0.055, dim(ALU, 0.8), null, lid)));
+      out.push(mt(MT.gloss, box(0, 0.82, 0.029, 2.42, 1.56, 0.006, [0.012, 0.013, 0.018], null, lid)));
+      const live = scan > 0 && scan < 1 ? Math.sin(Math.PI * scan) : 0;
+      out.push(mt(MT.glass, box(0, 0.84, 0.034, 2.26, 1.4, 0.004, [0.02, 0.022, 0.034], mul([0.3, 0.36, 0.55], 0.05 + 0.1 * live + 0.06 * after), lid)));
+      const done = t <= 1.2 ? 0 : scan, xs = -1.0, line = (x, y, w, h, col) => { const x1 = Math.min(x + w, xs + 2.0 * done); if (x1 > x + 0.01) out.push(mt(MT.matte, box((x + x1) / 2, 0.84 + y, 0.038, x1 - x, h, 0.003, [0, 0, 0], col, lid))); };
+      line(xs, 0.5, 0.7, 0.07, [0.95, 0.78, 0.1]);
+      for (let n = 0; n < 9; n++) { const hot = n === 1 || n === 4 || n === 5; line(xs, 0.34 - n * 0.105, 0.07, 0.05, hot ? [1.0, 0.2, 0.14] : [0.3, 0.31, 0.36]); line(xs + 0.13, 0.34 - n * 0.105, [1.5, 1.82, 1.2, 1.66, 1.74, 1.1, 1.58, 1.3, 0.9][n], 0.035, hot ? [0.62, 0.62, 0.6] : [0.34, 0.35, 0.4]); }
+      if (scan > 0 && scan < 1) out.push(box(-1.13 + 2.26 * scan, 0.84, 0.06, 0.022, 1.4, 0.02, [0, 0, 0], [1.3, 1.1, 0.25], lid));
+    } else {
     out.push(box(0, -0.62, 0.45, 2.5, 0.09, 1.7, [0.42, 0.44, 0.5], [0.03, 0.03, 0.04], B));                    // the base
     out.push(box(0, -0.57, 0.5, 2.1, 0.02, 1.0, [0.08, 0.085, 0.11], null, B));                                 // the keys
-    const lid = m4.chain(B, m4.trs(0, -0.6, -0.4), m4.rotX(-0.22));
     out.push(box(0, 0.82, 0, 2.5, 1.64, 0.07, [0.2, 0.21, 0.26], null, lid));
     out.push(box(0, 0.82, 0.045, 2.26, 1.42, 0.02, [0.05, 0.055, 0.08], mul([0.95, 0.78, 0.1], 0.07 + 0.3 * (scan > 0 && scan < 1 ? Math.sin(Math.PI * scan) : 0) + 0.2 * after), lid));
     if (scan > 0 && scan < 1) out.push(box(-1.13 + 2.26 * scan, 0.82, 0.08, 0.03, 1.42, 0.03, [0, 0, 0], [1.3, 1.1, 0.25], lid));
+    }
     mark(out, 0, 'pc');
     const cy0 = Q.RY[0] + Q.RH / 2, T = Q.TS + 0.5; let nh = 0;
     Q.cells().forEach(([x, dy], i) => {
@@ -2901,13 +3103,14 @@ window.FT_PLATES = {};
       const t0 = T + 0.3 + j * 0.3, k = pop(prog(t, t0, t0 + 0.4)); if (k <= 0) return;
       const from = out.length, s = 0.82 * k, B2 = m4.chain(back(-0.9), m4.trs(X(x), Y(y), 0), m4.scl(s, s, s), m4.rotX(j === 1 ? -0.75 : 0.34), m4.rotY(-0.5 + 0.16 * Math.sin(time * 0.7 + j)));
       const body = [0.6, 0.62, 0.69], dark = [0.14, 0.14, 0.17], soft = [0.05, 0.05, 0.065], g = v => mul([0.95, 0.76, 0.0], v);
-      if (j === 0) { const U2 = m4.chain(B2, m4.rotZ(-0.6)); out.push(box(0, -0.12, 0, 0.3, 0.52, 0.13, body, soft, U2)); out.push(box(0, 0.25, 0, 0.21, 0.22, 0.08, [0.72, 0.74, 0.8], soft, U2)); out.push(box(0, -0.22, 0.07, 0.07, 0.07, 0.02, dark, g(1), U2)); }
+      if (FINE) { const c = { lit: 1, glow: g }; if (j === 0) K.usb(out, B2, c); else if (j === 1) K.disc(out, B2, { lit: 1, glow: g, spin: time * 0.9 }); else if (j === 2) K.cloud(out, B2, c); else K.server(out, B2, c, time); }
+      else if (j === 0) { const U2 = m4.chain(B2, m4.rotZ(-0.6)); out.push(box(0, -0.12, 0, 0.3, 0.52, 0.13, body, soft, U2)); out.push(box(0, 0.25, 0, 0.21, 0.22, 0.08, [0.72, 0.74, 0.8], soft, U2)); out.push(box(0, -0.22, 0.07, 0.07, 0.07, 0.02, dark, g(1), U2)); }
       else if (j === 1) { const R2 = m4.chain(B2, m4.rotZ(time * 0.9)); out.push(cyl2(R2, 0, 0, 0, 0.82, 0.03, [0.72, 0.75, 0.84], g(0.12))); out.push(cyl2(R2, 0, 0, 0.02, 0.24, 0.03, dark, g(0.5))); out.push(box(0.27, 0, 0.02, 0.2, 0.035, 0.01, dark, g(0.8), R2)); }
       else if (j === 2) { const col = [0.86, 0.88, 0.93], e = g(0.22); out.push(cyl2(B2, -0.22, -0.04, 0, 0.42, 0.22, col, e)); out.push(cyl2(B2, 0.03, 0.1, 0, 0.56, 0.22, col, e)); out.push(cyl2(B2, 0.27, -0.03, 0, 0.4, 0.22, col, e)); out.push(box(0.02, -0.15, 0, 0.5, 0.2, 0.22, col, e, B2)); }
       else [-0.25, 0, 0.25].forEach((yy, n) => { const B3 = m4.chain(B2, m4.trs(0, 0.08, 0), m4.scl(0.86, 0.86, 0.86)); out.push(box(0, yy, 0, 0.68, 0.2, 0.5, body, soft, B3)); out.push(box(-0.23, yy, 0.255, 0.07, 0.07, 0.02, dark, g(0.7 + 0.3 * Math.sin(time * 3 + n * 2)), B3)); out.push(box(0.1, yy, 0.255, 0.3, 0.03, 0.02, dark, g(0.25), B3)); });
       mark(out, from, 'src' + j);
     });
-    return out;
+    return dress(out, [['q', MT.gloss]]);
   };
 
   // ---- translation: two slabs for the two sides (the record, the wording)
@@ -2915,7 +3118,7 @@ window.FT_PLATES = {};
   if (trn && window.FT_TRANS) trn.set3d = t => {
     const out = [], T = window.FT_TRANS, a0 = eo(prog(t, 0.5, 1.1)); if (a0 <= 0) return out;
     [[T.LX, [0.045, 0.05, 0.08]], [T.RX, [0.075, 0.07, 0.06]]].forEach(([x, col], n) => out.push(tagged(box(0, 0, -0.05, U(T.CW) * a0, U(T.CH) * a0, 0.1, col, null, m4.chain(back(-0.5), m4.trs(X(x + T.CW / 2), Y(T.CY + T.CH / 2), 0))), 'side' + n)));
-    return out;
+    return dress(out, [[null, MT.slab]]);
   };
 })();
 
